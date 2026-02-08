@@ -21,6 +21,10 @@ import io.ktor.server.routing.*
  *   DELETE /tasks/{id}  - タスク削除
  *
  * エラー時は ErrorResponse の JSON を返す
+ *
+ * NOTE: return@get, return@post 等はラベル付きreturn（Ktor固有ではなくKotlinの言語機能）。
+ * ラムダの中では素の return が使えないため、@ラベルで「どのラムダから抜けるか」を指定する。
+ * Ruby の next に近い（ブロックの残りをスキップしてエラーレスポンスを返す）。
  */
 fun Route.taskRoutes() {
     route("/tasks") {
