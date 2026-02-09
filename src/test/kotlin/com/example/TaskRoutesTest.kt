@@ -15,13 +15,25 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/**
+ * TaskRoutes の統合テスト（Rails でいう request spec に相当）
+ *
+ * testApplication { } で実サーバーを起動せずに HTTP リクエスト/レスポンスをテストする。
+ * 各テストは @BeforeTest でデータをリセットするため、テスト間の依存がない。
+ */
 class TaskRoutesTest {
 
+    /** 各テスト前にリポジトリを初期化し、テスト間のデータ干渉を防ぐ */
     @BeforeTest
     fun setup() {
         TaskRepository.clear()
     }
 
+    /**
+     * JSON の送受信が可能なテスト用 HTTP クライアントを生成する。
+     * サーバー側の ContentNegotiation と対になるクライアント側の設定。
+     * Rails テストの `as: :json` を共通化しているイメージ。
+     */
     private fun ApplicationTestBuilder.jsonClient() = createClient {
         install(ContentNegotiation) { json() }
     }
@@ -55,6 +67,7 @@ class TaskRoutesTest {
     fun `GET tasks by id returns the task`() = testApplication {
         val client = jsonClient()
 
+        // 事前データ作成（Rails の let! や before に相当）
         client.post("/tasks") {
             contentType(ContentType.Application.Json)
             setBody(CreateTaskRequest(title = "My Task"))
@@ -105,6 +118,7 @@ class TaskRoutesTest {
         val deleteResponse = client.delete("/tasks/1")
         assertEquals(HttpStatusCode.NoContent, deleteResponse.status)
 
+        // 削除後に GET して 404 になることで、実際に消えたことを検証
         val getResponse = client.get("/tasks/1")
         assertEquals(HttpStatusCode.NotFound, getResponse.status)
     }

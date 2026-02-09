@@ -40,7 +40,13 @@ data class UpdateTaskRequest(
 // DB導入時はこのobjectをインターフェースに切り替える想定。
 // =============================================================================
 
-/** タスクのCRUD操作を提供するインメモリリポジトリ */
+/**
+ * タスクのCRUD操作を提供するインメモリリポジトリ（Rails でいう ActiveRecord モデル + DB の役割）
+ *
+ * object で定義 = シングルトン。アプリ全体で1つのインスタンスを共有する。
+ * NOTE: mutableListOf はスレッドセーフではないため、本番で使う場合は
+ *       ConcurrentHashMap や DB に置き換えること。
+ */
 object TaskRepository {
     private val tasks = mutableListOf<Task>()
     /** 自動採番用カウンター（削除しても再利用しない） */
@@ -49,8 +55,10 @@ object TaskRepository {
     /** 全タスクを返す。防御的コピーにより内部リストの直接変更を防ぐ */
     fun all(): List<Task> = tasks.toList()
 
+    /** IDでタスクを検索する。見つからなければ null を返す（Rails の find_by 相当） */
     fun findById(id: Int): Task? = tasks.find { it.id == id }
 
+    /** リクエストからタスクを新規作成しリストに追加する。IDは nextId で自動採番 */
     fun create(request: CreateTaskRequest): Task {
         val task = Task(
             id = nextId++,
@@ -80,6 +88,7 @@ object TaskRepository {
         return updated
     }
 
+    /** 指定IDのタスクを削除する。削除できたら true、存在しなければ false */
     fun delete(id: Int): Boolean {
         return tasks.removeAll { it.id == id }
     }
