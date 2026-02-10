@@ -4,6 +4,7 @@ import com.example.models.CreateTaskRequest
 import com.example.models.Task
 import com.example.models.TaskRepository
 import com.example.models.UpdateTaskRequest
+import com.example.plugins.ErrorResponse
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
@@ -121,5 +122,85 @@ class TaskRoutesTest {
         // 削除後に GET して 404 になることで、実際に消えたことを検証
         val getResponse = client.get("/tasks/1")
         assertEquals(HttpStatusCode.NotFound, getResponse.status)
+    }
+
+    // ========== 異常系テスト ==========
+
+    @Test
+    fun `GET tasks by non-numeric id returns 400`() = testApplication {
+        val client = jsonClient()
+
+        val response = client.get("/tasks/abc")
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Invalid ID", response.body<ErrorResponse>().message)
+    }
+
+    @Test
+    fun `POST tasks with blank title returns 400`() = testApplication {
+        val client = jsonClient()
+
+        val response = client.post("/tasks") {
+            contentType(ContentType.Application.Json)
+            setBody(CreateTaskRequest(title = "   "))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Title is required", response.body<ErrorResponse>().message)
+    }
+
+    @Test
+    fun `POST tasks with invalid JSON returns 500`() = testApplication {
+        val client = jsonClient()
+
+        val response = client.post("/tasks") {
+            contentType(ContentType.Application.Json)
+            setBody("{invalid json}")
+        }
+
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+    }
+
+    @Test
+    fun `PUT tasks with non-numeric id returns 400`() = testApplication {
+        val client = jsonClient()
+
+        val response = client.put("/tasks/abc") {
+            contentType(ContentType.Application.Json)
+            setBody(UpdateTaskRequest(title = "Updated"))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Invalid ID", response.body<ErrorResponse>().message)
+    }
+
+    @Test
+    fun `PUT tasks with non-existent id returns 404`() = testApplication {
+        val client = jsonClient()
+
+        val response = client.put("/tasks/999") {
+            contentType(ContentType.Application.Json)
+            setBody(UpdateTaskRequest(title = "Updated"))
+        }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        assertEquals("Task not found", response.body<ErrorResponse>().message)
+    }
+
+    @Test
+    fun `DELETE tasks with non-numeric id returns 400`() = testApplication {
+        val client = jsonClient()
+
+        val response = client.delete("/tasks/abc")
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Invalid ID", response.body<ErrorResponse>().message)
+    }
+
+    @Test
+    fun `DELETE tasks with non-existent id returns 404`() = testApplication {
+        val client = jsonClient()
+
+        val response = client.delete("/tasks/999")
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        assertEquals("Task not found", response.body<ErrorResponse>().message)
     }
 }
