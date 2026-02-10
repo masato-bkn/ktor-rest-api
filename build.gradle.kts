@@ -43,7 +43,10 @@ repositories {
 dependencies {
     // --- Ktorサーバー本体 ---
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")       // コアAPI（routing, callなど）
-    implementation("io.ktor:ktor-server-netty-jvm:$ktorVersion")      // Nettyエンジン（HTTPサーバー実装）
+    // Nettyエンジン（HTTPサーバー実装）
+    // 少数のスレッドで大量の同時接続を捌くノンブロッキングI/O方式。
+    // 他エンジン（CIO, Jetty, Tomcat）に差し替える場合はこの行を変更する。
+    implementation("io.ktor:ktor-server-netty-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktorVersion")  // リクエスト/レスポンスの自動変換
     implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:$ktorVersion")  // kotlinx.serializationによるJSON処理
     implementation("io.ktor:ktor-server-status-pages-jvm:$ktorVersion")         // 例外→HTTPステータスコードの変換
