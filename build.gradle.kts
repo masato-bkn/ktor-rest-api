@@ -6,9 +6,17 @@
 // IDEの補完・型チェックが効くため、Kotlinプロジェクトではこちらが主流。
 //
 // よく使うコマンド:
-//   ./gradlew build  - ビルド（bundle install + rake build 相当）
+//   ./gradlew build  - フルビルド（下記の処理を順に実行）
+//                      1. compileKotlin   : .kt → .class にコンパイル
+//                      2. processResources: application.conf 等をコピー
+//                      3. jar             : .class を JAR ファイルに固める
+//                      4. compileTestKotlin: テストコードをコンパイル
+//                      5. test            : テスト実行
+//                      6. check           : テスト結果の検証
+//                      ※ Ruby はインタプリタ言語なのでコンパイル不要だが、
+//                        Kotlin はコンパイル言語のため「ソース→バイトコード」変換が必須
 //   ./gradlew run    - サーバー起動（rails server 相当）
-//   ./gradlew test   - テスト実行（rake test 相当）
+//   ./gradlew test   - テスト実行（rake test 相当。build との違いは JAR 生成をスキップする点）
 // =============================================================================
 
 // =============================================================================
