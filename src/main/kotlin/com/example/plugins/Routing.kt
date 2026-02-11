@@ -1,6 +1,7 @@
 package com.example.plugins
 
 import com.example.routes.taskRoutes
+import com.example.routes.userRoutes
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
 
@@ -11,5 +12,6 @@ import io.ktor.server.routing.*
 fun Application.configureRouting() {
     routing {
         taskRoutes()  // /tasks 以下のエンドポイント
+        userRoutes()  // /users 以下のエンドポイント
     }
 }
