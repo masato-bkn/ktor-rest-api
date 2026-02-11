@@ -13,14 +13,14 @@ data class Task(
     val id: Int,
     val title: String,
     val description: String = "",
-    val completed: Boolean = false
+    val completed: Boolean = false,
 )
 
 /** タスク作成時のリクエストボディ（POST /tasks で使用） */
 @Serializable
 data class CreateTaskRequest(
     val title: String,
-    val description: String = ""
+    val description: String = "",
 )
 
 /**
@@ -31,7 +31,7 @@ data class CreateTaskRequest(
 data class UpdateTaskRequest(
     val title: String? = null,
     val description: String? = null,
-    val completed: Boolean? = null
+    val completed: Boolean? = null,
 )
 
 // =============================================================================
@@ -49,6 +49,7 @@ data class UpdateTaskRequest(
  */
 object TaskRepository {
     private val tasks = mutableListOf<Task>()
+
     /** 自動採番用カウンター（削除しても再利用しない） */
     private var nextId = 1
 
@@ -60,11 +61,12 @@ object TaskRepository {
 
     /** リクエストからタスクを新規作成しリストに追加する。IDは nextId で自動採番 */
     fun create(request: CreateTaskRequest): Task {
-        val task = Task(
-            id = nextId++,
-            title = request.title,
-            description = request.description
-        )
+        val task =
+            Task(
+                id = nextId++,
+                title = request.title,
+                description = request.description,
+            )
         tasks.add(task)
         return task
     }
@@ -74,16 +76,20 @@ object TaskRepository {
      * リクエストのnullでないフィールドのみ上書きし、
      * nullのフィールドは既存の値を保持する
      */
-    fun update(id: Int, request: UpdateTaskRequest): Task? {
+    fun update(
+        id: Int,
+        request: UpdateTaskRequest,
+    ): Task? {
         val index = tasks.indexOfFirst { it.id == id }
         if (index == -1) return null
 
         val existing = tasks[index]
-        val updated = existing.copy(
-            title = request.title ?: existing.title,
-            description = request.description ?: existing.description,
-            completed = request.completed ?: existing.completed
-        )
+        val updated =
+            existing.copy(
+                title = request.title ?: existing.title,
+                description = request.description ?: existing.description,
+                completed = request.completed ?: existing.completed,
+            )
         tasks[index] = updated
         return updated
     }

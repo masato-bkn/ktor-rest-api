@@ -36,6 +36,9 @@ plugins {
     kotlin("plugin.serialization") version "2.0.21"
     // ./gradlew run でアプリケーションを起動できるようにする
     application
+    // コードフォーマッター（Kotlin公式スタイルガイド準拠）
+    // ./gradlew ktlintCheck でチェック、./gradlew ktlintFormat で自動修正
+    id("org.jlleitschuh.gradle.ktlint") version "12.1.2"
 }
 
 group = "com.example"
@@ -70,18 +73,18 @@ repositories {
 // implementation = 本番用、testImplementation = テスト専用
 dependencies {
     // --- Ktorサーバー本体 ---
-    implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")       // コアAPI（routing, callなど）
+    implementation("io.ktor:ktor-server-core-jvm:$ktorVersion") // コアAPI（routing, callなど）
     // Nettyエンジン（HTTPサーバー実装）
     // 少数のスレッドで大量の同時接続を捌くノンブロッキングI/O方式。
     // 他エンジン（CIO, Jetty, Tomcat）に差し替える場合はこの行を変更する。
     implementation("io.ktor:ktor-server-netty-jvm:$ktorVersion")
-    implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktorVersion")  // リクエスト/レスポンスの自動変換
-    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:$ktorVersion")  // kotlinx.serializationによるJSON処理
-    implementation("io.ktor:ktor-server-status-pages-jvm:$ktorVersion")         // 例外→HTTPステータスコードの変換
-    implementation("ch.qos.logback:logback-classic:$logbackVersion")            // ログ出力（Ktor内部で使用）
+    implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktorVersion") // リクエスト/レスポンスの自動変換
+    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:$ktorVersion") // kotlinx.serializationによるJSON処理
+    implementation("io.ktor:ktor-server-status-pages-jvm:$ktorVersion") // 例外→HTTPステータスコードの変換
+    implementation("ch.qos.logback:logback-classic:$logbackVersion") // ログ出力（Ktor内部で使用）
 
     // --- テスト ---
-    testImplementation("io.ktor:ktor-server-test-host-jvm:$ktorVersion")        // testApplication によるインメモリテスト
+    testImplementation("io.ktor:ktor-server-test-host-jvm:$ktorVersion") // testApplication によるインメモリテスト
     testImplementation("io.ktor:ktor-client-content-negotiation-jvm:$ktorVersion") // テストクライアントでのJSON送受信
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
 }

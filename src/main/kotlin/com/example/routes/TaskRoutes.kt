@@ -28,7 +28,6 @@ import io.ktor.server.routing.*
  */
 fun Route.taskRoutes() {
     route("/tasks") {
-
         // GET /tasks - 全タスク取得
         // レスポンス: 200 OK + Task の JSON 配列
         get {
@@ -38,12 +37,14 @@ fun Route.taskRoutes() {
         // GET /tasks/{id} - タスク1件取得
         // レスポンス: 200 OK + Task / 404 Not Found
         get("{id}") {
-            val id = call.parameters["id"]?.toIntOrNull()
-                // パスパラメータが数値でない場合は 400 を返す
-                ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid ID"))
+            val id =
+                call.parameters["id"]?.toIntOrNull()
+                    // パスパラメータが数値でない場合は 400 を返す
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid ID"))
 
-            val task = TaskRepository.findById(id)
-                ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("Task not found"))
+            val task =
+                TaskRepository.findById(id)
+                    ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("Task not found"))
 
             call.respond(task)
         }
@@ -65,12 +66,14 @@ fun Route.taskRoutes() {
         // リクエストボディ: { "title": "...", "completed": true } （変更したいフィールドのみ）
         // レスポンス: 200 OK + 更新後の Task / 404 Not Found
         put("{id}") {
-            val id = call.parameters["id"]?.toIntOrNull()
-                ?: return@put call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid ID"))
+            val id =
+                call.parameters["id"]?.toIntOrNull()
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid ID"))
 
             val request = call.receive<UpdateTaskRequest>()
-            val updated = TaskRepository.update(id, request)
-                ?: return@put call.respond(HttpStatusCode.NotFound, ErrorResponse("Task not found"))
+            val updated =
+                TaskRepository.update(id, request)
+                    ?: return@put call.respond(HttpStatusCode.NotFound, ErrorResponse("Task not found"))
 
             call.respond(updated)
         }
@@ -78,8 +81,9 @@ fun Route.taskRoutes() {
         // DELETE /tasks/{id} - タスク削除
         // レスポンス: 204 No Content（成功）/ 404 Not Found
         delete("{id}") {
-            val id = call.parameters["id"]?.toIntOrNull()
-                ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid ID"))
+            val id =
+                call.parameters["id"]?.toIntOrNull()
+                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid ID"))
 
             if (TaskRepository.delete(id)) {
                 call.respond(HttpStatusCode.NoContent)

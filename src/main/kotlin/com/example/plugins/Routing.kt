@@ -11,7 +11,7 @@ import io.ktor.server.routing.*
  */
 fun Application.configureRouting() {
     routing {
-        taskRoutes()  // /tasks 以下のエンドポイント
-        userRoutes()  // /users 以下のエンドポイント
+        taskRoutes() // /tasks 以下のエンドポイント
+        userRoutes() // /users 以下のエンドポイント
     }
 }

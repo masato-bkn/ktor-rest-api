@@ -27,7 +27,7 @@ fun Application.configureStatusPages() {
         exception<Throwable> { call, cause ->
             call.respond(
                 HttpStatusCode.InternalServerError,
-                ErrorResponse(cause.message ?: "Internal server error")
+                ErrorResponse(cause.message ?: "Internal server error"),
             )
         }
     }

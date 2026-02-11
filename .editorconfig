@@ -1,0 +1,5 @@
+root = true
+
+[*.{kt,kts}]
+# Ktor プロジェクトではワイルドカード import が一般的なため無効化
+ktlint_standard_no-wildcard-imports = disabled

@@ -23,9 +23,11 @@ import kotlinx.serialization.json.Json
  */
 fun Application.configureSerialization() {
     install(ContentNegotiation) {
-        json(Json {
-            // レスポンスJSONを整形して見やすくする（開発時に便利）
-            prettyPrint = true
-        })
+        json(
+            Json {
+                // レスポンスJSONを整形して見やすくする（開発時に便利）
+                prettyPrint = true
+            },
+        )
     }
 }

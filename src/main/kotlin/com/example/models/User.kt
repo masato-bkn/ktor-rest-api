@@ -7,14 +7,14 @@ import kotlinx.serialization.Serializable
 data class User(
     val id: Int,
     val name: String,
-    val email: String
+    val email: String,
 )
 
 /** ユーザー作成時のリクエストボディ（POST /users で使用） */
 @Serializable
 data class CreateUserRequest(
     val name: String,
-    val email: String
+    val email: String,
 )
 
 /**
@@ -24,7 +24,7 @@ data class CreateUserRequest(
 @Serializable
 data class UpdateUserRequest(
     val name: String? = null,
-    val email: String? = null
+    val email: String? = null,
 )
 
 /** ユーザーのCRUD操作を提供するインメモリリポジトリ */
@@ -37,24 +37,29 @@ object UserRepository {
     fun findById(id: Int): User? = users.find { it.id == id }
 
     fun create(request: CreateUserRequest): User {
-        val user = User(
-            id = nextId++,
-            name = request.name,
-            email = request.email
-        )
+        val user =
+            User(
+                id = nextId++,
+                name = request.name,
+                email = request.email,
+            )
         users.add(user)
         return user
     }
 
-    fun update(id: Int, request: UpdateUserRequest): User? {
+    fun update(
+        id: Int,
+        request: UpdateUserRequest,
+    ): User? {
         val index = users.indexOfFirst { it.id == id }
         if (index == -1) return null
 
         val existing = users[index]
-        val updated = existing.copy(
-            name = request.name ?: existing.name,
-            email = request.email ?: existing.email
-        )
+        val updated =
+            existing.copy(
+                name = request.name ?: existing.name,
+                email = request.email ?: existing.email,
+            )
         users[index] = updated
         return updated
     }
