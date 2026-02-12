@@ -1,47 +1,57 @@
 package com.example
 
+import com.example.db.ExposedTaskRepository
+import com.example.db.ExposedUserRepository
 import com.example.models.CreateTaskRequest
 import com.example.models.Task
-import com.example.models.TaskRepository
 import com.example.models.UpdateTaskRequest
 import com.example.plugins.ErrorResponse
+import com.example.plugins.configureRouting
+import com.example.plugins.configureSerialization
+import com.example.plugins.configureStatusPages
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.testing.*
+import org.junit.BeforeClass
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * TaskRoutes の統合テスト（Rails でいう request spec に相当）
- *
- * testApplication { } で実サーバーを起動せずに HTTP リクエスト/レスポンスをテストする。
- * 各テストは @BeforeTest でデータをリセットするため、テスト間の依存がない。
- */
 class TaskRoutesTest {
-    /** 各テスト前にリポジトリを初期化し、テスト間のデータ干渉を防ぐ */
-    @BeforeTest
-    fun setup() {
-        TaskRepository.clear()
+    companion object {
+        @JvmStatic
+        @BeforeClass
+        fun initDatabase() {
+            TestDatabaseFactory.init()
+        }
     }
 
-    /**
-     * JSON の送受信が可能なテスト用 HTTP クライアントを生成する。
-     * サーバー側の ContentNegotiation と対になるクライアント側の設定。
-     * Rails テストの `as: :json` を共通化しているイメージ。
-     */
+    @BeforeTest
+    fun setup() {
+        TestDatabaseFactory.clean()
+    }
+
     private fun ApplicationTestBuilder.jsonClient() =
         createClient {
             install(ContentNegotiation) { json() }
         }
 
+    private fun ApplicationTestBuilder.configureTestApplication() {
+        application {
+            configureSerialization()
+            configureStatusPages()
+            configureRouting(ExposedTaskRepository(), ExposedUserRepository())
+        }
+    }
+
     @Test
     fun `GET tasks returns empty list initially`() =
         testApplication {
+            configureTestApplication()
             val client = jsonClient()
 
             val response = client.get("/tasks")
@@ -52,6 +62,7 @@ class TaskRoutesTest {
     @Test
     fun `POST tasks creates a new task`() =
         testApplication {
+            configureTestApplication()
             val client = jsonClient()
 
             val response =
@@ -70,15 +81,17 @@ class TaskRoutesTest {
     @Test
     fun `GET tasks by id returns the task`() =
         testApplication {
+            configureTestApplication()
             val client = jsonClient()
 
-            // 事前データ作成（Rails の let! や before に相当）
-            client.post("/tasks") {
-                contentType(ContentType.Application.Json)
-                setBody(CreateTaskRequest(title = "My Task"))
-            }
+            val createResponse =
+                client.post("/tasks") {
+                    contentType(ContentType.Application.Json)
+                    setBody(CreateTaskRequest(title = "My Task"))
+                }
+            val created = createResponse.body<Task>()
 
-            val response = client.get("/tasks/1")
+            val response = client.get("/tasks/${created.id}")
             assertEquals(HttpStatusCode.OK, response.status)
             assertEquals("My Task", response.body<Task>().title)
         }
@@ -86,6 +99,7 @@ class TaskRoutesTest {
     @Test
     fun `GET tasks by invalid id returns 404`() =
         testApplication {
+            configureTestApplication()
             val client = jsonClient()
 
             val response = client.get("/tasks/999")
@@ -95,15 +109,18 @@ class TaskRoutesTest {
     @Test
     fun `PUT tasks updates the task`() =
         testApplication {
+            configureTestApplication()
             val client = jsonClient()
 
-            client.post("/tasks") {
-                contentType(ContentType.Application.Json)
-                setBody(CreateTaskRequest(title = "Original"))
-            }
+            val createResponse =
+                client.post("/tasks") {
+                    contentType(ContentType.Application.Json)
+                    setBody(CreateTaskRequest(title = "Original"))
+                }
+            val created = createResponse.body<Task>()
 
             val response =
-                client.put("/tasks/1") {
+                client.put("/tasks/${created.id}") {
                     contentType(ContentType.Application.Json)
                     setBody(UpdateTaskRequest(title = "Updated", completed = true))
                 }
@@ -117,18 +134,20 @@ class TaskRoutesTest {
     @Test
     fun `DELETE tasks removes the task`() =
         testApplication {
+            configureTestApplication()
             val client = jsonClient()
 
-            client.post("/tasks") {
-                contentType(ContentType.Application.Json)
-                setBody(CreateTaskRequest(title = "To Delete"))
-            }
+            val createResponse =
+                client.post("/tasks") {
+                    contentType(ContentType.Application.Json)
+                    setBody(CreateTaskRequest(title = "To Delete"))
+                }
+            val created = createResponse.body<Task>()
 
-            val deleteResponse = client.delete("/tasks/1")
+            val deleteResponse = client.delete("/tasks/${created.id}")
             assertEquals(HttpStatusCode.NoContent, deleteResponse.status)
 
-            // 削除後に GET して 404 になることで、実際に消えたことを検証
-            val getResponse = client.get("/tasks/1")
+            val getResponse = client.get("/tasks/${created.id}")
             assertEquals(HttpStatusCode.NotFound, getResponse.status)
         }
 
@@ -137,6 +156,7 @@ class TaskRoutesTest {
     @Test
     fun `GET tasks by non-numeric id returns 400`() =
         testApplication {
+            configureTestApplication()
             val client = jsonClient()
 
             val response = client.get("/tasks/abc")
@@ -147,6 +167,7 @@ class TaskRoutesTest {
     @Test
     fun `POST tasks with blank title returns 400`() =
         testApplication {
+            configureTestApplication()
             val client = jsonClient()
 
             val response =
@@ -162,6 +183,7 @@ class TaskRoutesTest {
     @Test
     fun `POST tasks with invalid JSON returns 500`() =
         testApplication {
+            configureTestApplication()
             val client = jsonClient()
 
             val response =
@@ -176,6 +198,7 @@ class TaskRoutesTest {
     @Test
     fun `PUT tasks with non-numeric id returns 400`() =
         testApplication {
+            configureTestApplication()
             val client = jsonClient()
 
             val response =
@@ -191,6 +214,7 @@ class TaskRoutesTest {
     @Test
     fun `PUT tasks with non-existent id returns 404`() =
         testApplication {
+            configureTestApplication()
             val client = jsonClient()
 
             val response =
@@ -206,6 +230,7 @@ class TaskRoutesTest {
     @Test
     fun `DELETE tasks with non-numeric id returns 400`() =
         testApplication {
+            configureTestApplication()
             val client = jsonClient()
 
             val response = client.delete("/tasks/abc")
@@ -216,6 +241,7 @@ class TaskRoutesTest {
     @Test
     fun `DELETE tasks with non-existent id returns 404`() =
         testApplication {
+            configureTestApplication()
             val client = jsonClient()
 
             val response = client.delete("/tasks/999")
