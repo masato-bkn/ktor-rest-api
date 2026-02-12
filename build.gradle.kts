@@ -27,6 +27,8 @@ val ktorVersion = "2.3.12"
 val kotlinVersion = "2.0.21"
 val logbackVersion = "1.4.14"
 val serializationVersion = "1.7.3"
+val exposedVersion = "0.56.0"
+val testcontainersVersion = "1.20.4"
 
 // Gradleプラグイン（ビルドに必要なツール群）
 // Gemfile でいう gem のうち、開発ツール系に相当する
@@ -83,8 +85,19 @@ dependencies {
     implementation("io.ktor:ktor-server-status-pages-jvm:$ktorVersion") // 例外→HTTPステータスコードの変換
     implementation("ch.qos.logback:logback-classic:$logbackVersion") // ログ出力（Ktor内部で使用）
 
+    // --- DB (Exposed + PostgreSQL + HikariCP) ---
+    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+    implementation("org.postgresql:postgresql:42.7.4")
+    implementation("com.zaxxer:HikariCP:6.2.1")
+
     // --- テスト ---
     testImplementation("io.ktor:ktor-server-test-host-jvm:$ktorVersion") // testApplication によるインメモリテスト
     testImplementation("io.ktor:ktor-client-content-negotiation-jvm:$ktorVersion") // テストクライアントでのJSON送受信
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
+
+    // --- Testcontainers (テスト用 PostgreSQL コンテナ) ---
+    testImplementation("org.testcontainers:testcontainers:$testcontainersVersion")
+    testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
+    testImplementation("org.testcontainers:junit-jupiter:$testcontainersVersion")
 }
