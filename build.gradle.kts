@@ -27,8 +27,8 @@ val ktorVersion = "2.3.12"
 val kotlinVersion = "2.0.21"
 val logbackVersion = "1.4.14"
 val serializationVersion = "1.7.3"
-val exposedVersion = "0.56.0"
-val testcontainersVersion = "1.20.4"
+val exposedVersion = "0.56.0" // JetBrains製 Kotlin ORM（Rails の ActiveRecord に相当）
+val testcontainersVersion = "1.20.4" // テスト時に Docker コンテナを自動起動するライブラリ
 
 // Gradleプラグイン（ビルドに必要なツール群）
 // Gemfile でいう gem のうち、開発ツール系に相当する
@@ -86,9 +86,22 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logbackVersion") // ログ出力（Ktor内部で使用）
 
     // --- DB (Exposed + PostgreSQL + HikariCP) ---
+    // Exposed: JetBrains製の Kotlin ORM。SQL を Kotlin DSL で書ける。
+    //   Rails の ActiveRecord が「モデル定義 → SQL自動生成」なのと同様に、
+    //   Exposed も「テーブル定義 → 型安全なクエリ」を提供する。
+    //   ただし ActiveRecord のような規約ベース（命名で自動マッピング）ではなく、
+    //   明示的にテーブル定義とクエリを書く DSL スタイル。
+    //   core = テーブル定義・クエリDSL、jdbc = JDBC経由のDB接続
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+    // PostgreSQL JDBC ドライバ（Java/KotlinからPostgreSQLに接続するための橋渡し）
+    // Ruby でいう pg gem に相当
     implementation("org.postgresql:postgresql:42.7.4")
+    // HikariCP: 高速なDBコネクションプール
+    // DB接続の「使い回し」を管理する。接続を毎回作り直すのは遅いため、
+    // プール（接続の在庫）を保持して再利用する。
+    // Rails では ActiveRecord 内部に組み込まれているが（pool: 5 の設定）、
+    // Kotlin/JVM では HikariCP を明示的に導入する。
     implementation("com.zaxxer:HikariCP:6.2.1")
 
     // --- テスト ---
@@ -97,6 +110,13 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
 
     // --- Testcontainers (テスト用 PostgreSQL コンテナ) ---
+    // テストコードから Docker で本物の PostgreSQL コンテナを自動起動・停止する。
+    // H2 等のインメモリDBで代用するとPostgreSQL固有の挙動をテストできないため、
+    // 本番と同じDBエンジンでテストする戦略を採用。
+    // Ruby でいう database_cleaner + Docker の組み合わせに近い。
+    //   testcontainers: コア（Docker操作の抽象化）
+    //   postgresql:     PostgreSQLContainer クラスを提供
+    //   junit-jupiter:  JUnit5との統合（@Testcontainers アノテーション等）
     testImplementation("org.testcontainers:testcontainers:$testcontainersVersion")
     testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
     testImplementation("org.testcontainers:junit-jupiter:$testcontainersVersion")
