@@ -20,10 +20,10 @@ import io.ktor.server.routing.*
  *   PUT    /users/{id}  - ユーザー更新（部分更新）
  *   DELETE /users/{id}  - ユーザー削除
  */
-fun Route.userRoutes() {
+fun Route.userRoutes(repository: UserRepository) {
     route("/users") {
         get {
-            call.respond(UserRepository.all())
+            call.respond(repository.all())
         }
 
         get("{id}") {
@@ -32,7 +32,7 @@ fun Route.userRoutes() {
                     ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid ID"))
 
             val user =
-                UserRepository.findById(id)
+                repository.findById(id)
                     ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("User not found"))
 
             call.respond(user)
@@ -46,7 +46,7 @@ fun Route.userRoutes() {
             if (request.email.isBlank()) {
                 return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("Email is required"))
             }
-            val user = UserRepository.create(request)
+            val user = repository.create(request)
             call.respond(HttpStatusCode.Created, user)
         }
 
@@ -57,7 +57,7 @@ fun Route.userRoutes() {
 
             val request = call.receive<UpdateUserRequest>()
             val updated =
-                UserRepository.update(id, request)
+                repository.update(id, request)
                     ?: return@put call.respond(HttpStatusCode.NotFound, ErrorResponse("User not found"))
 
             call.respond(updated)
@@ -68,7 +68,7 @@ fun Route.userRoutes() {
                 call.parameters["id"]?.toIntOrNull()
                     ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid ID"))
 
-            if (UserRepository.delete(id)) {
+            if (repository.delete(id)) {
                 call.respond(HttpStatusCode.NoContent)
             } else {
                 call.respond(HttpStatusCode.NotFound, ErrorResponse("User not found"))
