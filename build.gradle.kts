@@ -28,6 +28,7 @@ val kotlinVersion = "2.0.21"
 val logbackVersion = "1.4.14"
 val serializationVersion = "1.7.3"
 val exposedVersion = "0.56.0" // JetBrains製 Kotlin ORM（Rails の ActiveRecord に相当）
+val flywayVersion = "11.3.0" // DBマイグレーションツール（Rails の db:migrate に相当）
 val testcontainersVersion = "1.20.4" // テスト時に Docker コンテナを自動起動するライブラリ
 
 // Gradleプラグイン（ビルドに必要なツール群）
@@ -103,6 +104,13 @@ dependencies {
     // Rails では ActiveRecord 内部に組み込まれているが（pool: 5 の設定）、
     // Kotlin/JVM では HikariCP を明示的に導入する。
     implementation("com.zaxxer:HikariCP:6.2.1")
+
+    // --- Flyway (DBマイグレーション) ---
+    // SQLファイルベースでスキーマ変更履歴を管理する。Rails の db:migrate に相当。
+    // flyway-core: マイグレーションエンジン本体
+    // flyway-database-postgresql: PostgreSQL 固有のサポート（Flyway 10+ で必要）
+    implementation("org.flywaydb:flyway-core:$flywayVersion")
+    implementation("org.flywaydb:flyway-database-postgresql:$flywayVersion")
 
     // --- テスト ---
     testImplementation("io.ktor:ktor-server-test-host-jvm:$ktorVersion") // testApplication によるインメモリテスト
