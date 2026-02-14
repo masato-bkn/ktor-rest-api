@@ -8,7 +8,12 @@
 // よく使うコマンド:
 //   ./gradlew build  - フルビルド（下記の処理を順に実行）
 //                      1. compileKotlin   : .kt → .class にコンパイル
-//                      2. processResources: application.conf 等をコピー
+//                      2. processResources: src/main/resources/ の中身を JAR にそのままコピー
+//                         → application.conf や db/migration/*.sql が JAR に同梱される
+//                         → コードからは ClassLoader 経由（クラスパス）で読み取れるため、
+//                           ファイルの絶対パスを気にせずどの環境でも動く
+//                         （Rails はプロジェクトディレクトリをそのままデプロイするが、
+//                          JVM は JAR にパッケージングするため resources/ に置く規約）
 //                      3. jar             : .class を JAR ファイルに固める
 //                      4. compileTestKotlin: テストコードをコンパイル
 //                      5. test            : テスト実行
