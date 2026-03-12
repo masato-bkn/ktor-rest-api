@@ -1,0 +1,47 @@
+services:
+  # =====================================
+  # アプリケーションコンテナ
+  # VSCodeが接続して開発作業を行う環境
+  # =====================================
+  app:
+    # JDK 21 公式イメージ（Ktor 2.x の動作要件）
+    image: eclipse-temurin:21-jdk
+    volumes:
+      # ホストのプロジェクトルート（..）をコンテナの /workspace にマウント
+      # cached: macOSでのファイルI/Oを高速化するオプション
+      - ..:/workspace:cached
+    # コンテナを起動し続けるためのダミーコマンド
+    # これがないとコンテナがすぐ終了してしまう
+    command: sleep infinity
+    environment:
+      # application.conf の DATABASE_URL を上書き
+      # "localhost" ではなく "db"（サービス名）で接続する点がポイント
+      # Docker Compose 内では サービス名 = ホスト名 として名前解決される
+      #
+      # JDBC URL のフォーマット: jdbc:postgresql://ホスト:ポート/DB名
+      # jdbc: → JVM系言語でDBに接続するための標準的な仕組み（Java Database Connectivity）
+      # db    → サービス名がそのままホスト名になる（localhost ではない点に注意）
+      DATABASE_URL: jdbc:postgresql://db:5432/ktor_rest_api
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+    depends_on:
+      - db # db コンテナが起動してから app を起動する
+
+  # =====================================
+  # データベースコンテナ
+  # =====================================
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ktor_rest_api # 自動作成されるDB名
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      # DBのデータを名前付きボリュームに永続化する
+      # コンテナを削除してもデータが消えない
+      - postgres-data:/var/lib/postgresql/data
+
+# 名前付きボリュームの宣言
+# Docker が管理する永続ストレージ領域
+volumes:
+  postgres-data:

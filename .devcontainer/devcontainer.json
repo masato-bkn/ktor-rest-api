@@ -1,0 +1,36 @@
+// Dev Container の設定ファイル。
+// VSCode が "Reopen in Container" 時にこのファイルを読み込む。
+{
+  // VSCode 上での表示名
+  "name": "ktor-rest-api",
+
+  // 複数コンテナの構成は docker-compose.yml に分離して管理する
+  "dockerComposeFile": "docker-compose.yml",
+
+  // docker-compose.yml の中でVSCodeが接続するサービス名（アプリ側）
+  // db コンテナではなく app コンテナの中で開発する
+  "service": "app",
+
+  // コンテナ内でVSCodeが開くディレクトリ
+  // docker-compose.yml の volumes でホストの .. をここにマウントしている
+  "workspaceFolder": "/workspace",
+
+  // コンテナ初回作成後に自動実行されるコマンド
+  // Gradleの依存ライブラリを事前にダウンロードしておくことで、
+  // 初回の ./gradlew run を速くする
+  "postCreateCommand": "./gradlew dependencies --quiet",
+
+  "customizations": {
+    "vscode": {
+      // コンテナ内のVSCodeに自動インストールされる拡張機能
+      "extensions": [
+        "mathiasfrohlich.Kotlin", // Kotlinのシンタックスハイライト
+        "vscjava.vscode-gradle" // Gradleタスクのサイドバー表示・実行
+      ]
+    }
+  },
+
+  // コンテナの8080番ポートをホストの8080番に転送する
+  // これにより localhost:8080 でKtorサーバーにアクセスできる
+  "forwardPorts": [8080]
+}
