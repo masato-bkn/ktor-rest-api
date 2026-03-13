@@ -9,6 +9,44 @@ Kotlin + Ktor で構築したタスク管理 REST API です。
 - **kotlinx.serialization** (JSON 処理)
 - **Gradle** (Kotlin DSL)
 
+## Dev Container
+
+VSCode + Docker Desktop があれば、ローカルにJDKやPostgreSQLをインストールせずに開発できます。
+
+### コンテナ構成
+
+```
+┌─────────────────────────────────────────────────┐
+│ このMac（ホスト）                                  │
+│                                                  │
+│  Docker Desktop                                  │
+│  └── Dockerデーモン                              │
+│       │                                          │
+│       ├── appコンテナ（Dev Container）            │
+│       │    ├── JDK 21                            │
+│       │    ├── /workspace ← Macのプロジェクトをマウント│
+│       │    └── ここで ./gradlew run / test を実行 │
+│       │                                          │
+│       ├── dbコンテナ（PostgreSQL 16）            │
+│       │    └── アプリが接続するDB                 │
+│       │                                          │
+│       └── テスト用PostgreSQLコンテナ             │
+│            └── Testcontainersが自動で起動・削除   │
+│                                                  │
+└─────────────────────────────────────────────────┘
+```
+
+### 起動方法
+
+1. VSCodeでこのフォルダを開く
+2. `Cmd+Shift+P` → 「Dev Containers: Reopen in Container」
+3. コンテナ起動後、VSCodeのターミナルで：
+
+```bash
+./gradlew run   # サーバー起動 → http://localhost:8080
+./gradlew test  # テスト実行
+```
+
 ## セットアップ
 
 ```bash

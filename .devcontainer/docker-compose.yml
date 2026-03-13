@@ -10,6 +10,9 @@ services:
       # ホストのプロジェクトルート（..）をコンテナの /workspace にマウント
       # cached: macOSでのファイルI/Oを高速化するオプション
       - ..:/workspace:cached
+      # Testcontainers がコンテナ内からDockerを使えるようにする
+      # コンテナ内でDockerを動かすのではなく、ホストのDockerデーモンを共有する
+      - /var/run/docker.sock:/var/run/docker.sock
     # コンテナを起動し続けるためのダミーコマンド
     # これがないとコンテナがすぐ終了してしまう
     command: sleep infinity
