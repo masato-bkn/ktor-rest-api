@@ -27,6 +27,9 @@ services:
       DATABASE_URL: jdbc:postgresql://db:5432/ktor_rest_api
       DATABASE_USER: postgres
       DATABASE_PASSWORD: postgres
+      # Testcontainers のクリーンアップ用コンポーネント（Ryuk）を無効化する
+      # Dev Container 内では Ryuk がホストに接続できないため無効化が必要
+      TESTCONTAINERS_RYUK_DISABLED: "true"
     depends_on:
       - db # db コンテナが起動してから app を起動する
 

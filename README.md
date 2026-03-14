@@ -132,6 +132,51 @@ src/main/kotlin/com/example/
     └── TaskRoutes.kt       # /tasks エンドポイント定義
 ```
 
+## テストの仕組みメモ
+
+### `./gradlew test` が動く仕組み
+
+`src/test/` がテストコード置き場になり、`@Test` が付いたメソッドが自動でテスト対象になるのは **Gradle + JUnit の仕様**。Kotlin側では何も設定していない。
+
+```kotlin
+// build.gradle.kts
+testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
+//                                               ↑
+//                          この依存関係を追加するだけで有効になる
+```
+
+JUnitの規約として `src/test/` 以下がテスト置き場、`@Test` が付いたメソッドがテスト対象と決まっており、Gradleはそれを自動で認識して実行する。
+
+### Ryuk について
+
+Testcontainers はテスト終了後にコンテナを自動削除するため、裏で **Ryuk** という専用コンテナを立ち上げる。テストがクラッシュしても孤児コンテナが残らないようにする仕組み。
+
+```
+Ryukコンテナ（監視役）
+    ↓ テスト終了 or クラッシュを検知
+テスト用PostgreSQLコンテナを自動削除
+```
+
+Dev Container 内では Ryuk がホストへの逆方向通信に失敗するため、`TESTCONTAINERS_RYUK_DISABLED=true` で無効化している（`.devcontainer/docker-compose.yml`）。無効化してもテスト終了時にコンテナは通常通り削除される。
+
+### テスト実行の流れ
+
+```
+./gradlew test
+    ↓
+JUnit が src/test/ 以下の @Test メソッドを検出
+    ↓
+@BeforeClass でテストスイート全体の初期化
+    → Testcontainers が PostgreSQL コンテナを起動
+    → Flyway でマイグレーション実行
+    ↓
+各 @Test メソッドを実行
+    → @Before で TestDatabaseFactory.clean()（DBリセット）
+    → テスト本体（APIにリクエスト → レスポンス検証）
+    ↓
+@AfterClass でコンテナ停止・削除
+```
+
 ## Ktor の仕組みメモ
 
 ### 唯一の「自動的な」仕組み
