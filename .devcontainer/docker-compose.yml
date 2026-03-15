@@ -12,10 +12,10 @@ services:
       - ..:/workspace:cached
       # Testcontainers がコンテナ内からDockerを使えるようにする
       # コンテナ内でDockerを動かすのではなく、ホストのDockerデーモンを共有する
-      # macOS の Docker Desktop 4.3以降はソケットが /var/run/docker.sock ではなく
-      # ${HOME}/.docker/run/docker.sock に移動した。${HOME} は Docker Compose が
-      # ホストの環境変数を展開するため、コンテナの /var/run/docker.sock にマップする。
-      - ${HOME}/.docker/run/docker.sock:/var/run/docker.sock
+      # Docker Desktop は Linux VM 内で動作しており、そのVM内のソケットが
+      # /var/run/docker.sock に存在する。devcontainer も同じ VM 内で動くため
+      # このパスを直接マウントすることで Docker デーモンにアクセスできる。
+      - /var/run/docker.sock:/var/run/docker.sock
     # コンテナを起動し続けるためのダミーコマンド
     # これがないとコンテナがすぐ終了してしまう
     command: sleep infinity
@@ -33,6 +33,11 @@ services:
       # Testcontainers のクリーンアップ用コンポーネント（Ryuk）を無効化する
       # Dev Container 内では Ryuk がホストに接続できないため無効化が必要
       TESTCONTAINERS_RYUK_DISABLED: "true"
+      # Testcontainers がDBコンテナへの接続に使うホスト名を上書きする
+      # devcontainer 内では localhost は自分自身を指すため、
+      # ホストのDockerで起動したコンテナには繋がらない。
+      # host.docker.internal はホスト側のDockerネットワークを経由して接続できる。
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
     depends_on:
       - db # db コンテナが起動してから app を起動する
 
