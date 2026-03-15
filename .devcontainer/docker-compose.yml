@@ -12,7 +12,10 @@ services:
       - ..:/workspace:cached
       # Testcontainers がコンテナ内からDockerを使えるようにする
       # コンテナ内でDockerを動かすのではなく、ホストのDockerデーモンを共有する
-      - /var/run/docker.sock:/var/run/docker.sock
+      # macOS の Docker Desktop 4.3以降はソケットが /var/run/docker.sock ではなく
+      # ${HOME}/.docker/run/docker.sock に移動した。${HOME} は Docker Compose が
+      # ホストの環境変数を展開するため、コンテナの /var/run/docker.sock にマップする。
+      - ${HOME}/.docker/run/docker.sock:/var/run/docker.sock
     # コンテナを起動し続けるためのダミーコマンド
     # これがないとコンテナがすぐ終了してしまう
     command: sleep infinity
