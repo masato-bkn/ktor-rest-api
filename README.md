@@ -159,6 +159,35 @@ Ryukコンテナ（監視役）
 
 Dev Container 内では Ryuk がホストへの逆方向通信に失敗するため、`TESTCONTAINERS_RYUK_DISABLED=true` で無効化している（`.devcontainer/docker-compose.yml`）。無効化してもテスト終了時にコンテナは通常通り削除される。
 
+### DevContainer 内でのネットワーク構成
+
+DevContainer 内でテストを実行すると、Testcontainers は Docker デーモン（Linux VM 内）を使って PostgreSQL コンテナを起動する。このとき接続先ホストが問題になる。
+
+```
+devcontainer の中から見た localhost
+    ↓
+自分自身（devcontainer）を指す
+    ↓
+Testcontainers が起動した PostgreSQL コンテナには届かない！
+```
+
+`TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal` を設定することで解決する。
+
+```
+devcontainer → host.docker.internal:ランダムポート
+                    ↓
+             VM のネットワーク経由
+                    ↓
+             PostgreSQL コンテナ ✅
+```
+
+この設定は `.devcontainer/docker-compose.yml` の `environment` に記載している。
+
+また、Docker ソケットのマウントは `- /var/run/docker.sock:/var/run/docker.sock` を使う。
+Docker Desktop は Linux VM 内で動作しており、devcontainer も同じ VM 内で動くため
+VM 内の `/var/run/docker.sock` を直接マウントすればよい
+（Mac ホスト上に `/var/run/docker.sock` がなくても問題ない）。
+
 ### テスト実行の流れ
 
 ```
