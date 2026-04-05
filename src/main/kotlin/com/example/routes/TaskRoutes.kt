@@ -1,9 +1,12 @@
 package com.example.routes
 
 import com.example.models.CreateTaskRequest
+import com.example.models.Either
+import com.example.models.Task
 import com.example.models.TaskRepository
 import com.example.models.UpdateTaskRequest
 import com.example.plugins.ErrorResponse
+import com.example.plugins.handleGet
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -21,9 +24,10 @@ import io.ktor.server.routing.*
  *   DELETE /tasks/{id}  - タスク削除
  */
 fun Route.taskRoutes(repository: TaskRepository) {
+
     route("/tasks") {
-        get {
-            call.respond(repository.all())
+        handleGet<List<Task>> {
+            Either.Right(repository.all())
         }
 
         get("{id}") {
