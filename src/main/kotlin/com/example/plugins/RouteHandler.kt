@@ -14,12 +14,14 @@ inline fun <reified T: Any> createHandler (
     noinline body: suspend PipelineContext<Unit, ApplicationCall>.(Unit) -> Either<DomainError, T>
 ): Route.() -> Unit = {
     handle {
-        when (val result = body.invoke(this, Unit)) {
-            is Either.Left -> call.respond(
-                HttpStatusCode.BadRequest,
-                ErrorResponse(result.value.message)
-            )
-            is Either.Right -> call.respond(successHttpStatusCode, result.value)
+        try {
+            when (val result = body.invoke(this, Unit)) {
+                is Either.Left -> call.handleDomainError(result.value)
+                is Either.Right -> call.respond(successHttpStatusCode, result.value)
+            }
+        }
+        catch (e: Throwable) {
+            call.handleThrowable(e)
         }
     }
 }

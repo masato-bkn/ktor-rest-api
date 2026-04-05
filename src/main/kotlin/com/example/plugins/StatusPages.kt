@@ -1,10 +1,12 @@
 package com.example.plugins
 
+import com.example.models.DomainError
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import kotlinx.serialization.Serializable
+import io.ktor.server.application.call
 
 /** エラーレスポンスの共通フォーマット（全APIで統一した形式でエラーを返す） */
 @Serializable
@@ -31,4 +33,18 @@ fun Application.configureStatusPages() {
             )
         }
     }
+}
+
+suspend fun ApplicationCall.handleDomainError(error: DomainError) {
+    when (error) {
+        is DomainError.NotFound -> respond(HttpStatusCode.NotFound, ErrorResponse(error.message))
+        is DomainError.BadRequest -> respond(HttpStatusCode.BadRequest, ErrorResponse(error.message))
+    }
+}
+
+suspend fun ApplicationCall.handleThrowable(error: Throwable) {
+    respond(
+        HttpStatusCode.InternalServerError,
+        ErrorResponse(error.message ?: "Internal server error"),
+    )
 }
