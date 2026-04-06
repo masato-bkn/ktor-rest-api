@@ -3,10 +3,10 @@ package com.example.plugins
 import com.example.models.DomainError
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.application.call
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import kotlinx.serialization.Serializable
-import io.ktor.server.application.call
 
 /** エラーレスポンスの共通フォーマット（全APIで統一した形式でエラーを返す） */
 @Serializable

@@ -25,14 +25,13 @@ import io.ktor.server.routing.*
  *   DELETE /tasks/{id}  - タスク削除
  */
 fun Route.taskRoutes(repository: TaskRepository) {
-
     route("/tasks") {
         handleGet<List<Task>> {
             Either.Right(repository.all())
         }
 
         handleGet<Task>("{id}") {
-            val id =  call.parameters["id"]?.toIntOrNull() ?: return@handleGet Either.Left(DomainError.BadRequest("Invalid ID"))
+            val id = call.parameters["id"]?.toIntOrNull() ?: return@handleGet Either.Left(DomainError.BadRequest("Invalid ID"))
 
             val task =
                 repository.findById(id)
