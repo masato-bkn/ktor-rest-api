@@ -1,6 +1,7 @@
 package com.example.routes
 
 import com.example.models.CreateTaskRequest
+import com.example.models.DomainError
 import com.example.models.Either
 import com.example.models.Task
 import com.example.models.TaskRepository
@@ -30,16 +31,14 @@ fun Route.taskRoutes(repository: TaskRepository) {
             Either.Right(repository.all())
         }
 
-        get("{id}") {
-            val id =
-                call.parameters["id"]?.toIntOrNull()
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid ID"))
+        handleGet<Task>("{id}") {
+            val id =  call.parameters["id"]?.toIntOrNull() ?: return@handleGet Either.Left(DomainError.BadRequest("Invalid ID"))
 
             val task =
                 repository.findById(id)
-                    ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("Task not found"))
+                    ?: return@handleGet Either.Left(DomainError.NotFound("Task not found"))
 
-            call.respond(task)
+            Either.Right(task)
         }
 
         post {
