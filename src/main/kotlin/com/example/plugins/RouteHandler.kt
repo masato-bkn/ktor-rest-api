@@ -11,6 +11,16 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import io.ktor.util.pipeline.PipelineContext
 
+/**
+ * ハンドラから HTTP の詳細を追い出すためのルート抽象化。
+ *
+ * ハンドラ本体は Either<DomainError, T> を返すだけに専念し、
+ * HttpStatusCode の選択や ErrorResponse への変換は
+ * createHandler / handleDomainError に一任する（関心の分離）。
+ *
+ * 旧スタイルでは call.respond(HttpStatusCode.X, ErrorResponse(...)) が
+ * 各ハンドラに散在していたため、HTTP の詳細とビジネスロジックが混在していた。
+ */
 inline fun <reified T : Any> createHandler(
     successHttpStatusCode: HttpStatusCode,
     noinline body: suspend PipelineContext<Unit, ApplicationCall>.(Unit) -> Either<DomainError, T>,
