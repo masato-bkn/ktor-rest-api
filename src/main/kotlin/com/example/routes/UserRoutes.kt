@@ -1,9 +1,13 @@
 package com.example.routes
 
 import com.example.models.CreateUserRequest
+import com.example.models.DomainError
+import com.example.models.Either
 import com.example.models.UpdateUserRequest
+import com.example.models.User
 import com.example.models.UserRepository
 import com.example.plugins.ErrorResponse
+import com.example.plugins.handleGet
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -22,20 +26,18 @@ import io.ktor.server.routing.*
  */
 fun Route.userRoutes(repository: UserRepository) {
     route("/users") {
-        get {
-            call.respond(repository.all())
+        handleGet<List<User>> {
+            Either.Right(repository.all())
         }
 
-        get("{id}") {
-            val id =
-                call.parameters["id"]?.toIntOrNull()
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid ID"))
+        handleGet<User>("{id}") {
+            val id = call.parameters["id"]?.toIntOrNull() ?: return@handleGet Either.Left(DomainError.BadRequest("Invalid ID"))
 
             val user =
                 repository.findById(id)
-                    ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("User not found"))
+                    ?: return@handleGet Either.Left(DomainError.NotFound("User not found"))
 
-            call.respond(user)
+            Either.Right(user)
         }
 
         post {
