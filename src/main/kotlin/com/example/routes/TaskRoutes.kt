@@ -8,6 +8,7 @@ import com.example.models.TaskRepository
 import com.example.models.UpdateTaskRequest
 import com.example.plugins.ErrorResponse
 import com.example.plugins.handleGet
+import com.example.plugins.handlePost
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -40,13 +41,13 @@ fun Route.taskRoutes(repository: TaskRepository) {
             Either.Right(task)
         }
 
-        post {
+        handlePost<Task> {
             val request = call.receive<CreateTaskRequest>()
             if (request.title.isBlank()) {
-                return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("Title is required"))
+                return@handlePost Either.Left(DomainError.BadRequest("Title is required"))
             }
             val task = repository.create(request)
-            call.respond(HttpStatusCode.Created, task)
+            Either.Right(task)
         }
 
         put("{id}") {

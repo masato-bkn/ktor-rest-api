@@ -8,6 +8,7 @@ import com.example.models.User
 import com.example.models.UserRepository
 import com.example.plugins.ErrorResponse
 import com.example.plugins.handleGet
+import com.example.plugins.handlePost
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -40,16 +41,16 @@ fun Route.userRoutes(repository: UserRepository) {
             Either.Right(user)
         }
 
-        post {
+        handlePost<User> {
             val request = call.receive<CreateUserRequest>()
             if (request.name.isBlank()) {
-                return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("Name is required"))
+                return@handlePost Either.Left(DomainError.BadRequest("Name is required"))
             }
             if (request.email.isBlank()) {
-                return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("Email is required"))
+                return@handlePost Either.Left(DomainError.BadRequest("Email is required"))
             }
             val user = repository.create(request)
-            call.respond(HttpStatusCode.Created, user)
+            Either.Right(user)
         }
 
         put("{id}") {
