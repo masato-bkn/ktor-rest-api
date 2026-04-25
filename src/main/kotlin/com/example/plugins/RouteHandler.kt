@@ -45,3 +45,11 @@ inline fun <reified T : Any> Route.handleGet(
 ): Route {
     return route(path, HttpMethod.Get, createHandler<T>(successHttpStatusCode, body))
 }
+
+inline fun <reified T : Any> Route.handlePost(
+    path: String = "",
+    successHttpStatusCode: HttpStatusCode = HttpStatusCode.Created,
+    noinline body: suspend PipelineContext<Unit, ApplicationCall>.(Unit) -> Either<DomainError, T>,
+): Route {
+    return route(path, HttpMethod.Post, createHandler<T>(successHttpStatusCode, body))
+}
