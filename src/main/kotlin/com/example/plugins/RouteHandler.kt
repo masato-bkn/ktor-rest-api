@@ -53,3 +53,35 @@ inline fun <reified T : Any> Route.handlePost(
 ): Route {
     return route(path, HttpMethod.Post, createHandler<T>(successHttpStatusCode, body))
 }
+
+inline fun <reified T : Any> Route.handlePut(
+    path: String = "",
+    successHttpStatusCode: HttpStatusCode = HttpStatusCode.OK,
+    noinline body: suspend PipelineContext<Unit, ApplicationCall>.(Unit) -> Either<DomainError, T>,
+): Route {
+    return route(path, HttpMethod.Put, createHandler<T>(successHttpStatusCode, body))
+}
+
+/**
+ * DELETE は成功時にボディを返さない（204 No Content）のが慣習。
+ * そのため createHandler<T> ではなく専用の実装を持ち、
+ * Either.Right の中身を respond に渡さず status のみで応答する。
+ */
+fun Route.handleDelete(
+    path: String = "",
+    successHttpStatusCode: HttpStatusCode = HttpStatusCode.NoContent,
+    body: suspend PipelineContext<Unit, ApplicationCall>.(Unit) -> Either<DomainError, Unit>,
+): Route {
+    return route(path, HttpMethod.Delete) {
+        handle {
+            try {
+                when (val result = body.invoke(this, Unit)) {
+                    is Either.Left -> call.handleDomainError(result.value)
+                    is Either.Right -> call.respond(successHttpStatusCode)
+                }
+            } catch (e: Throwable) {
+                call.handleThrowable(e)
+            }
+        }
+    }
+}
