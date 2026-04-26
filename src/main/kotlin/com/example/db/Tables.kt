@@ -1,5 +1,6 @@
 package com.example.db
 
+import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.Table
 
 /** Tasks テーブル定義 */
@@ -8,6 +9,7 @@ object Tasks : Table("tasks") {
     val title = varchar("title", 255)
     val description = text("description").default("")
     val completed = bool("completed").default(false)
+    val assigneeId = integer("assignee_id").references(Users.id, onDelete = ReferenceOption.SET_NULL).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
