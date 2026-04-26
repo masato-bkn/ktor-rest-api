@@ -6,9 +6,10 @@ import com.example.models.Either
 import com.example.models.Task
 import com.example.models.TaskRepository
 import com.example.models.UpdateTaskRequest
-import com.example.plugins.ErrorResponse
+import com.example.plugins.handleDelete
 import com.example.plugins.handleGet
 import com.example.plugins.handlePost
+import com.example.plugins.handlePut
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -50,28 +51,24 @@ fun Route.taskRoutes(repository: TaskRepository) {
             Either.Right(task)
         }
 
-        put("{id}") {
-            val id =
-                call.parameters["id"]?.toIntOrNull()
-                    ?: return@put call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid ID"))
+        handlePut<Task>("{id}") {
+            val id = call.parameters["id"]?.toIntOrNull() ?: return@handlePut Either.Left(DomainError.BadRequest("Invalid ID"))
 
             val request = call.receive<UpdateTaskRequest>()
             val updated =
                 repository.update(id, request)
-                    ?: return@put call.respond(HttpStatusCode.NotFound, ErrorResponse("Task not found"))
+                    ?: return@handlePut Either.Left(DomainError.NotFound("Task not found"))
 
-            call.respond(updated)
+            Either.Right(updated)
         }
 
-        delete("{id}") {
-            val id =
-                call.parameters["id"]?.toIntOrNull()
-                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid ID"))
+        handleDelete("{id}") {
+            val id = call.parameters["id"]?.toIntOrNull() ?: return@handleDelete Either.Left(DomainError.BadRequest("Invalid ID"))
 
             if (repository.delete(id)) {
-                call.respond(HttpStatusCode.NoContent)
+                Either.Right(Unit)
             } else {
-                call.respond(HttpStatusCode.NotFound, ErrorResponse("Task not found"))
+                Either.Left(DomainError.NotFound("Task not found"))
             }
         }
     }
