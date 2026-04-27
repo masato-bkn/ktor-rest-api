@@ -35,6 +35,8 @@ interface TaskRepository {
 
     suspend fun findById(id: Int): Task?
 
+    suspend fun findByAssigneeId(assigneeId: Int): List<Task>
+
     suspend fun create(request: CreateTaskRequest): Task
 
     suspend fun update(

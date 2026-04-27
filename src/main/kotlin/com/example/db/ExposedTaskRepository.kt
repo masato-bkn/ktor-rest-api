@@ -33,6 +33,12 @@ class ExposedTaskRepository : TaskRepository {
                 .singleOrNull()
         }
 
+    override suspend fun findByAssigneeId(assigneeId: Int): List<Task> =
+        suspendTransaction {
+            Tasks.selectAll().where { Tasks.assigneeId eq assigneeId }
+                .map(::resultRowToTask)
+        }
+
     override suspend fun create(request: CreateTaskRequest): Task =
         suspendTransaction {
             val id =
