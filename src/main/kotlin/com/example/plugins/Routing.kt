@@ -16,7 +16,7 @@ fun Application.configureRouting(
     userRepository: UserRepository,
 ) {
     routing {
-        taskRoutes(taskRepository)
-        userRoutes(userRepository)
+        taskRoutes(taskRepository, userRepository)
+        userRoutes(userRepository, taskRepository)
     }
 }

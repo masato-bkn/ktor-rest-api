@@ -18,6 +18,7 @@ class ExposedTaskRepository : TaskRepository {
             title = row[Tasks.title],
             description = row[Tasks.description],
             completed = row[Tasks.completed],
+            assigneeId = row[Tasks.assigneeId],
         )
 
     override suspend fun all(): List<Task> =
@@ -32,18 +33,26 @@ class ExposedTaskRepository : TaskRepository {
                 .singleOrNull()
         }
 
+    override suspend fun findByAssigneeId(assigneeId: Int): List<Task> =
+        suspendTransaction {
+            Tasks.selectAll().where { Tasks.assigneeId eq assigneeId }
+                .map(::resultRowToTask)
+        }
+
     override suspend fun create(request: CreateTaskRequest): Task =
         suspendTransaction {
             val id =
                 Tasks.insert {
                     it[title] = request.title
                     it[description] = request.description
+                    it[assigneeId] = request.assigneeId
                 } get Tasks.id
 
             Task(
                 id = id,
                 title = request.title,
                 description = request.description,
+                assigneeId = request.assigneeId,
             )
         }
 
@@ -61,6 +70,9 @@ class ExposedTaskRepository : TaskRepository {
                 it[title] = request.title ?: existing.title
                 it[description] = request.description ?: existing.description
                 it[completed] = request.completed ?: existing.completed
+                // TODO: ?: で「省略」と「明示的 null」が同一視されるため担当者を外す手段がない。
+                //       PATCH 用に Optional 型 or sentinel を導入して unassign を表現する設計を後で検討。
+                it[assigneeId] = request.assigneeId ?: existing.assigneeId
             }
 
             Tasks.selectAll().where { Tasks.id eq id }

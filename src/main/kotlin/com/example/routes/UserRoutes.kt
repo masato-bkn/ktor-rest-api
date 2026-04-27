@@ -3,6 +3,8 @@ package com.example.routes
 import com.example.models.CreateUserRequest
 import com.example.models.DomainError
 import com.example.models.Either
+import com.example.models.Task
+import com.example.models.TaskRepository
 import com.example.models.UpdateUserRequest
 import com.example.models.User
 import com.example.models.UserRepository
@@ -20,13 +22,17 @@ import io.ktor.server.routing.*
  * ユーザー管理のRESTエンドポイントを定義する
  *
  * エンドポイント一覧:
- *   GET    /users       - 全ユーザー取得
- *   GET    /users/{id}  - ユーザー1件取得
- *   POST   /users       - ユーザー作成
- *   PUT    /users/{id}  - ユーザー更新（部分更新）
- *   DELETE /users/{id}  - ユーザー削除
+ *   GET    /users             - 全ユーザー取得
+ *   GET    /users/{id}        - ユーザー1件取得
+ *   GET    /users/{id}/tasks  - 指定ユーザーが担当するタスク一覧
+ *   POST   /users             - ユーザー作成
+ *   PUT    /users/{id}        - ユーザー更新（部分更新）
+ *   DELETE /users/{id}        - ユーザー削除
  */
-fun Route.userRoutes(repository: UserRepository) {
+fun Route.userRoutes(
+    repository: UserRepository,
+    taskRepository: TaskRepository,
+) {
     route("/users") {
         handleGet<List<User>> {
             Either.Right(repository.all())
@@ -40,6 +46,16 @@ fun Route.userRoutes(repository: UserRepository) {
                     ?: return@handleGet Either.Left(DomainError.NotFound("User not found"))
 
             Either.Right(user)
+        }
+
+        handleGet<List<Task>>("{id}/tasks") {
+            val id = call.parameters["id"]?.toIntOrNull() ?: return@handleGet Either.Left(DomainError.BadRequest("Invalid ID"))
+
+            if (repository.findById(id) == null) {
+                return@handleGet Either.Left(DomainError.NotFound("User not found"))
+            }
+
+            Either.Right(taskRepository.findByAssigneeId(id))
         }
 
         handlePost<User> {
