@@ -2,7 +2,9 @@ package com.example
 
 import com.example.db.ExposedTaskRepository
 import com.example.db.ExposedUserRepository
+import com.example.models.CreateTaskRequest
 import com.example.models.CreateUserRequest
+import com.example.models.Task
 import com.example.models.UpdateUserRequest
 import com.example.models.User
 import com.example.plugins.ErrorResponse
@@ -260,5 +262,78 @@ class UserRoutesTest {
             val response = client.delete("/users/999")
             assertEquals(HttpStatusCode.NotFound, response.status)
             assertEquals("User not found", response.body<ErrorResponse>().message)
+        }
+
+    // ========== GET /users/{id}/tasks ==========
+
+    @Test
+    fun `GET users tasks returns tasks assigned to that user`() =
+        testApplication {
+            configureTestApplication()
+            val client = jsonClient()
+
+            val user =
+                client.post("/users") {
+                    contentType(ContentType.Application.Json)
+                    setBody(CreateUserRequest(name = "Alice", email = "a@example.com"))
+                }.body<User>()
+
+            client.post("/tasks") {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTaskRequest(title = "T1", assigneeId = user.id))
+            }
+            client.post("/tasks") {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTaskRequest(title = "T2", assigneeId = user.id))
+            }
+            client.post("/tasks") {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTaskRequest(title = "Other"))
+            }
+
+            val response = client.get("/users/${user.id}/tasks")
+            assertEquals(HttpStatusCode.OK, response.status)
+            val tasks = response.body<List<Task>>()
+            assertEquals(2, tasks.size)
+            assertEquals(setOf("T1", "T2"), tasks.map { it.title }.toSet())
+        }
+
+    @Test
+    fun `GET users tasks returns empty list when user has no tasks`() =
+        testApplication {
+            configureTestApplication()
+            val client = jsonClient()
+
+            val user =
+                client.post("/users") {
+                    contentType(ContentType.Application.Json)
+                    setBody(CreateUserRequest(name = "Alice", email = "a@example.com"))
+                }.body<User>()
+
+            val response = client.get("/users/${user.id}/tasks")
+            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals(emptyList<Task>(), response.body<List<Task>>())
+        }
+
+    @Test
+    fun `GET users tasks returns 404 when user does not exist`() =
+        testApplication {
+            configureTestApplication()
+            val client = jsonClient()
+
+            val response = client.get("/users/999/tasks")
+            assertEquals(HttpStatusCode.NotFound, response.status)
+            assertEquals("User not found", response.body<ErrorResponse>().message)
+        }
+
+    @Test
+    fun `GET users tasks with non-numeric id returns 400`() =
+        testApplication {
+            configureTestApplication()
+            val client = jsonClient()
+
+            val response = client.get("/users/abc/tasks")
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            assertEquals("Invalid ID", response.body<ErrorResponse>().message)
         }
 }
