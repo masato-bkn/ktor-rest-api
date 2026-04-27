@@ -1,339 +1,196 @@
 package com.example
 
-import com.example.db.ExposedTaskRepository
-import com.example.db.ExposedUserRepository
-import com.example.models.CreateTaskRequest
 import com.example.models.CreateUserRequest
 import com.example.models.Task
 import com.example.models.UpdateUserRequest
 import com.example.models.User
 import com.example.plugins.ErrorResponse
-import com.example.plugins.configureRouting
-import com.example.plugins.configureSerialization
-import com.example.plugins.configureStatusPages
 import io.ktor.client.call.*
-import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.testing.*
-import org.junit.BeforeClass
-import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class UserRoutesTest {
-    companion object {
-        @JvmStatic
-        @BeforeClass
-        fun initDatabase() {
-            TestDatabaseFactory.init()
-        }
-    }
-
-    @BeforeTest
-    fun setup() {
-        TestDatabaseFactory.clean()
-    }
-
-    private fun ApplicationTestBuilder.jsonClient() =
-        createClient {
-            install(ContentNegotiation) { json() }
-        }
-
-    private fun ApplicationTestBuilder.configureTestApplication() {
-        application {
-            configureSerialization()
-            configureStatusPages()
-            configureRouting(ExposedTaskRepository(), ExposedUserRepository())
-        }
-    }
+class UserRoutesTest : ApiTestBase() {
 
     // ========== 正常系テスト ==========
 
     @Test
-    fun `GET users returns empty list initially`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
-            val response = client.get("/users")
-            assertEquals(HttpStatusCode.OK, response.status)
-            assertEquals(emptyList<User>(), response.body<List<User>>())
-        }
+    fun `GET users returns empty list initially`() = apiTest { client ->
+        val response = client.get("/users")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(emptyList<User>(), response.body<List<User>>())
+    }
 
     @Test
-    fun `POST users creates a new user`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
-            val response =
-                client.post("/users") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateUserRequest(name = "Alice", email = "alice@example.com"))
-                }
-
-            assertEquals(HttpStatusCode.Created, response.status)
-            val user = response.body<User>()
-            assertEquals("Alice", user.name)
-            assertEquals("alice@example.com", user.email)
-        }
-
-    @Test
-    fun `GET users by id returns the user`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
-            val createResponse =
-                client.post("/users") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateUserRequest(name = "Bob", email = "bob@example.com"))
-                }
-            val created = createResponse.body<User>()
-
-            val response = client.get("/users/${created.id}")
-            assertEquals(HttpStatusCode.OK, response.status)
-            val user = response.body<User>()
-            assertEquals("Bob", user.name)
-            assertEquals("bob@example.com", user.email)
-        }
-
-    @Test
-    fun `GET users returns all users`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
+    fun `POST users creates a new user`() = apiTest { client ->
+        val response =
             client.post("/users") {
                 contentType(ContentType.Application.Json)
                 setBody(CreateUserRequest(name = "Alice", email = "alice@example.com"))
             }
-            client.post("/users") {
+
+        assertEquals(HttpStatusCode.Created, response.status)
+        val user = response.body<User>()
+        assertEquals("Alice", user.name)
+        assertEquals("alice@example.com", user.email)
+    }
+
+    @Test
+    fun `GET users by id returns the user`() = apiTest { client ->
+        val created = client.createUser("Bob", "bob@example.com")
+
+        val response = client.get("/users/${created.id}")
+        assertEquals(HttpStatusCode.OK, response.status)
+        val user = response.body<User>()
+        assertEquals("Bob", user.name)
+        assertEquals("bob@example.com", user.email)
+    }
+
+    @Test
+    fun `GET users returns all users`() = apiTest { client ->
+        client.createUser("Alice", "alice@example.com")
+        client.createUser("Bob", "bob@example.com")
+
+        val response = client.get("/users")
+        assertEquals(HttpStatusCode.OK, response.status)
+        val users = response.body<List<User>>()
+        assertEquals(2, users.size)
+    }
+
+    @Test
+    fun `PUT users updates the user`() = apiTest { client ->
+        val created = client.createUser("Alice", "alice@example.com")
+
+        val response =
+            client.put("/users/${created.id}") {
                 contentType(ContentType.Application.Json)
-                setBody(CreateUserRequest(name = "Bob", email = "bob@example.com"))
+                setBody(UpdateUserRequest(name = "Alice Updated"))
             }
 
-            val response = client.get("/users")
-            assertEquals(HttpStatusCode.OK, response.status)
-            val users = response.body<List<User>>()
-            assertEquals(2, users.size)
-        }
+        assertEquals(HttpStatusCode.OK, response.status)
+        val user = response.body<User>()
+        assertEquals("Alice Updated", user.name)
+        assertEquals("alice@example.com", user.email)
+    }
 
     @Test
-    fun `PUT users updates the user`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `DELETE users removes the user`() = apiTest { client ->
+        val created = client.createUser("Alice", "alice@example.com")
 
-            val createResponse =
-                client.post("/users") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateUserRequest(name = "Alice", email = "alice@example.com"))
-                }
-            val created = createResponse.body<User>()
+        val deleteResponse = client.delete("/users/${created.id}")
+        assertEquals(HttpStatusCode.NoContent, deleteResponse.status)
 
-            val response =
-                client.put("/users/${created.id}") {
-                    contentType(ContentType.Application.Json)
-                    setBody(UpdateUserRequest(name = "Alice Updated"))
-                }
-
-            assertEquals(HttpStatusCode.OK, response.status)
-            val user = response.body<User>()
-            assertEquals("Alice Updated", user.name)
-            assertEquals("alice@example.com", user.email)
-        }
-
-    @Test
-    fun `DELETE users removes the user`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
-            val createResponse =
-                client.post("/users") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateUserRequest(name = "Alice", email = "alice@example.com"))
-                }
-            val created = createResponse.body<User>()
-
-            val deleteResponse = client.delete("/users/${created.id}")
-            assertEquals(HttpStatusCode.NoContent, deleteResponse.status)
-
-            val getResponse = client.get("/users/${created.id}")
-            assertEquals(HttpStatusCode.NotFound, getResponse.status)
-        }
+        val getResponse = client.get("/users/${created.id}")
+        assertEquals(HttpStatusCode.NotFound, getResponse.status)
+    }
 
     // ========== 異常系テスト ==========
 
     @Test
-    fun `GET users by non-numeric id returns 400`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
-            val response = client.get("/users/abc")
-            assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertEquals("Invalid ID", response.body<ErrorResponse>().message)
-        }
+    fun `GET users by non-numeric id returns 400`() = apiTest { client ->
+        val response = client.get("/users/abc")
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Invalid ID", response.body<ErrorResponse>().message)
+    }
 
     @Test
-    fun `GET users by non-existent id returns 404`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
-            val response = client.get("/users/999")
-            assertEquals(HttpStatusCode.NotFound, response.status)
-            assertEquals("User not found", response.body<ErrorResponse>().message)
-        }
+    fun `GET users by non-existent id returns 404`() = apiTest { client ->
+        val response = client.get("/users/999")
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        assertEquals("User not found", response.body<ErrorResponse>().message)
+    }
 
     @Test
-    fun `POST users with blank name returns 400`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `POST users with blank name returns 400`() = apiTest { client ->
+        val response =
+            client.post("/users") {
+                contentType(ContentType.Application.Json)
+                setBody(CreateUserRequest(name = "   ", email = "test@example.com"))
+            }
 
-            val response =
-                client.post("/users") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateUserRequest(name = "   ", email = "test@example.com"))
-                }
-
-            assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertEquals("Name is required", response.body<ErrorResponse>().message)
-        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Name is required", response.body<ErrorResponse>().message)
+    }
 
     @Test
-    fun `POST users with blank email returns 400`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `POST users with blank email returns 400`() = apiTest { client ->
+        val response =
+            client.post("/users") {
+                contentType(ContentType.Application.Json)
+                setBody(CreateUserRequest(name = "Alice", email = "   "))
+            }
 
-            val response =
-                client.post("/users") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateUserRequest(name = "Alice", email = "   "))
-                }
-
-            assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertEquals("Email is required", response.body<ErrorResponse>().message)
-        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Email is required", response.body<ErrorResponse>().message)
+    }
 
     @Test
-    fun `POST users with invalid JSON returns 500`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `POST users with invalid JSON returns 500`() = apiTest { client ->
+        val response =
+            client.post("/users") {
+                contentType(ContentType.Application.Json)
+                setBody("{invalid json}")
+            }
 
-            val response =
-                client.post("/users") {
-                    contentType(ContentType.Application.Json)
-                    setBody("{invalid json}")
-                }
-
-            assertEquals(HttpStatusCode.InternalServerError, response.status)
-        }
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+    }
 
     @Test
-    fun `PUT users with non-numeric id returns 400`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `PUT users with non-numeric id returns 400`() = apiTest { client ->
+        val response =
+            client.put("/users/abc") {
+                contentType(ContentType.Application.Json)
+                setBody(UpdateUserRequest(name = "Updated"))
+            }
 
-            val response =
-                client.put("/users/abc") {
-                    contentType(ContentType.Application.Json)
-                    setBody(UpdateUserRequest(name = "Updated"))
-                }
-
-            assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertEquals("Invalid ID", response.body<ErrorResponse>().message)
-        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Invalid ID", response.body<ErrorResponse>().message)
+    }
 
     @Test
-    fun `DELETE users with non-existent id returns 404`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
-            val response = client.delete("/users/999")
-            assertEquals(HttpStatusCode.NotFound, response.status)
-            assertEquals("User not found", response.body<ErrorResponse>().message)
-        }
+    fun `DELETE users with non-existent id returns 404`() = apiTest { client ->
+        val response = client.delete("/users/999")
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        assertEquals("User not found", response.body<ErrorResponse>().message)
+    }
 
     // ========== GET /users/{id}/tasks ==========
 
     @Test
-    fun `GET users tasks returns tasks assigned to that user`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `GET users tasks returns tasks assigned to that user`() = apiTest { client ->
+        val user = client.createUser("Alice", "a@example.com")
+        client.createTask("T1", assigneeId = user.id)
+        client.createTask("T2", assigneeId = user.id)
+        client.createTask("Other")
 
-            val user =
-                client.post("/users") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateUserRequest(name = "Alice", email = "a@example.com"))
-                }.body<User>()
-
-            client.post("/tasks") {
-                contentType(ContentType.Application.Json)
-                setBody(CreateTaskRequest(title = "T1", assigneeId = user.id))
-            }
-            client.post("/tasks") {
-                contentType(ContentType.Application.Json)
-                setBody(CreateTaskRequest(title = "T2", assigneeId = user.id))
-            }
-            client.post("/tasks") {
-                contentType(ContentType.Application.Json)
-                setBody(CreateTaskRequest(title = "Other"))
-            }
-
-            val response = client.get("/users/${user.id}/tasks")
-            assertEquals(HttpStatusCode.OK, response.status)
-            val tasks = response.body<List<Task>>()
-            assertEquals(2, tasks.size)
-            assertEquals(setOf("T1", "T2"), tasks.map { it.title }.toSet())
-        }
+        val response = client.get("/users/${user.id}/tasks")
+        assertEquals(HttpStatusCode.OK, response.status)
+        val tasks = response.body<List<Task>>()
+        assertEquals(2, tasks.size)
+        assertEquals(setOf("T1", "T2"), tasks.map { it.title }.toSet())
+    }
 
     @Test
-    fun `GET users tasks returns empty list when user has no tasks`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `GET users tasks returns empty list when user has no tasks`() = apiTest { client ->
+        val user = client.createUser("Alice", "a@example.com")
 
-            val user =
-                client.post("/users") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateUserRequest(name = "Alice", email = "a@example.com"))
-                }.body<User>()
-
-            val response = client.get("/users/${user.id}/tasks")
-            assertEquals(HttpStatusCode.OK, response.status)
-            assertEquals(emptyList<Task>(), response.body<List<Task>>())
-        }
+        val response = client.get("/users/${user.id}/tasks")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(emptyList<Task>(), response.body<List<Task>>())
+    }
 
     @Test
-    fun `GET users tasks returns 404 when user does not exist`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
-            val response = client.get("/users/999/tasks")
-            assertEquals(HttpStatusCode.NotFound, response.status)
-            assertEquals("User not found", response.body<ErrorResponse>().message)
-        }
+    fun `GET users tasks returns 404 when user does not exist`() = apiTest { client ->
+        val response = client.get("/users/999/tasks")
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        assertEquals("User not found", response.body<ErrorResponse>().message)
+    }
 
     @Test
-    fun `GET users tasks with non-numeric id returns 400`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
-            val response = client.get("/users/abc/tasks")
-            assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertEquals("Invalid ID", response.body<ErrorResponse>().message)
-        }
+    fun `GET users tasks with non-numeric id returns 400`() = apiTest { client ->
+        val response = client.get("/users/abc/tasks")
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Invalid ID", response.body<ErrorResponse>().message)
+    }
 }

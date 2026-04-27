@@ -1,383 +1,230 @@
 package com.example
 
-import com.example.db.ExposedTaskRepository
-import com.example.db.ExposedUserRepository
 import com.example.models.CreateTaskRequest
-import com.example.models.CreateUserRequest
 import com.example.models.Task
 import com.example.models.UpdateTaskRequest
-import com.example.models.User
 import com.example.plugins.ErrorResponse
-import com.example.plugins.configureRouting
-import com.example.plugins.configureSerialization
-import com.example.plugins.configureStatusPages
 import io.ktor.client.call.*
-import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.testing.*
-import org.junit.BeforeClass
-import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class TaskRoutesTest {
-    companion object {
-        @JvmStatic
-        @BeforeClass
-        fun initDatabase() {
-            TestDatabaseFactory.init()
-        }
-    }
+class TaskRoutesTest : ApiTestBase() {
 
-    @BeforeTest
-    fun setup() {
-        TestDatabaseFactory.clean()
-    }
-
-    private fun ApplicationTestBuilder.jsonClient() =
-        createClient {
-            install(ContentNegotiation) { json() }
-        }
-
-    private fun ApplicationTestBuilder.configureTestApplication() {
-        application {
-            configureSerialization()
-            configureStatusPages()
-            configureRouting(ExposedTaskRepository(), ExposedUserRepository())
-        }
+    @Test
+    fun `GET tasks returns empty list initially`() = apiTest { client ->
+        val response = client.get("/tasks")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(emptyList<Task>(), response.body<List<Task>>())
     }
 
     @Test
-    fun `GET tasks returns empty list initially`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `POST tasks creates a new task`() = apiTest { client ->
+        val response =
+            client.post("/tasks") {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTaskRequest(title = "Test Task", description = "A test"))
+            }
 
-            val response = client.get("/tasks")
-            assertEquals(HttpStatusCode.OK, response.status)
-            assertEquals(emptyList<Task>(), response.body<List<Task>>())
-        }
-
-    @Test
-    fun `POST tasks creates a new task`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
-            val response =
-                client.post("/tasks") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateTaskRequest(title = "Test Task", description = "A test"))
-                }
-
-            assertEquals(HttpStatusCode.Created, response.status)
-            val task = response.body<Task>()
-            assertEquals("Test Task", task.title)
-            assertEquals("A test", task.description)
-            assertEquals(false, task.completed)
-        }
+        assertEquals(HttpStatusCode.Created, response.status)
+        val task = response.body<Task>()
+        assertEquals("Test Task", task.title)
+        assertEquals("A test", task.description)
+        assertEquals(false, task.completed)
+    }
 
     @Test
-    fun `GET tasks by id returns the task`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `GET tasks by id returns the task`() = apiTest { client ->
+        val created = client.createTask("My Task")
 
-            val createResponse =
-                client.post("/tasks") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateTaskRequest(title = "My Task"))
-                }
-            val created = createResponse.body<Task>()
-
-            val response = client.get("/tasks/${created.id}")
-            assertEquals(HttpStatusCode.OK, response.status)
-            assertEquals("My Task", response.body<Task>().title)
-        }
+        val response = client.get("/tasks/${created.id}")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals("My Task", response.body<Task>().title)
+    }
 
     @Test
-    fun `GET tasks by invalid id returns 404`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
-            val response = client.get("/tasks/999")
-            assertEquals(HttpStatusCode.NotFound, response.status)
-        }
+    fun `GET tasks by invalid id returns 404`() = apiTest { client ->
+        val response = client.get("/tasks/999")
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
 
     @Test
-    fun `PUT tasks updates the task`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `PUT tasks updates the task`() = apiTest { client ->
+        val created = client.createTask("Original")
 
-            val createResponse =
-                client.post("/tasks") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateTaskRequest(title = "Original"))
-                }
-            val created = createResponse.body<Task>()
+        val response =
+            client.put("/tasks/${created.id}") {
+                contentType(ContentType.Application.Json)
+                setBody(UpdateTaskRequest(title = "Updated", completed = true))
+            }
 
-            val response =
-                client.put("/tasks/${created.id}") {
-                    contentType(ContentType.Application.Json)
-                    setBody(UpdateTaskRequest(title = "Updated", completed = true))
-                }
-
-            assertEquals(HttpStatusCode.OK, response.status)
-            val task = response.body<Task>()
-            assertEquals("Updated", task.title)
-            assertTrue(task.completed)
-        }
+        assertEquals(HttpStatusCode.OK, response.status)
+        val task = response.body<Task>()
+        assertEquals("Updated", task.title)
+        assertTrue(task.completed)
+    }
 
     @Test
-    fun `DELETE tasks removes the task`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `DELETE tasks removes the task`() = apiTest { client ->
+        val created = client.createTask("To Delete")
 
-            val createResponse =
-                client.post("/tasks") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateTaskRequest(title = "To Delete"))
-                }
-            val created = createResponse.body<Task>()
+        val deleteResponse = client.delete("/tasks/${created.id}")
+        assertEquals(HttpStatusCode.NoContent, deleteResponse.status)
 
-            val deleteResponse = client.delete("/tasks/${created.id}")
-            assertEquals(HttpStatusCode.NoContent, deleteResponse.status)
-
-            val getResponse = client.get("/tasks/${created.id}")
-            assertEquals(HttpStatusCode.NotFound, getResponse.status)
-        }
+        val getResponse = client.get("/tasks/${created.id}")
+        assertEquals(HttpStatusCode.NotFound, getResponse.status)
+    }
 
     // ========== 異常系テスト ==========
 
     @Test
-    fun `GET tasks by non-numeric id returns 400`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
-            val response = client.get("/tasks/abc")
-            assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertEquals("Invalid ID", response.body<ErrorResponse>().message)
-        }
+    fun `GET tasks by non-numeric id returns 400`() = apiTest { client ->
+        val response = client.get("/tasks/abc")
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Invalid ID", response.body<ErrorResponse>().message)
+    }
 
     @Test
-    fun `POST tasks with blank title returns 400`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `POST tasks with blank title returns 400`() = apiTest { client ->
+        val response =
+            client.post("/tasks") {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTaskRequest(title = "   "))
+            }
 
-            val response =
-                client.post("/tasks") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateTaskRequest(title = "   "))
-                }
-
-            assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertEquals("Title is required", response.body<ErrorResponse>().message)
-        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Title is required", response.body<ErrorResponse>().message)
+    }
 
     @Test
-    fun `POST tasks with invalid JSON returns 500`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `POST tasks with invalid JSON returns 500`() = apiTest { client ->
+        val response =
+            client.post("/tasks") {
+                contentType(ContentType.Application.Json)
+                setBody("{invalid json}")
+            }
 
-            val response =
-                client.post("/tasks") {
-                    contentType(ContentType.Application.Json)
-                    setBody("{invalid json}")
-                }
-
-            assertEquals(HttpStatusCode.InternalServerError, response.status)
-        }
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+    }
 
     @Test
-    fun `PUT tasks with non-numeric id returns 400`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `PUT tasks with non-numeric id returns 400`() = apiTest { client ->
+        val response =
+            client.put("/tasks/abc") {
+                contentType(ContentType.Application.Json)
+                setBody(UpdateTaskRequest(title = "Updated"))
+            }
 
-            val response =
-                client.put("/tasks/abc") {
-                    contentType(ContentType.Application.Json)
-                    setBody(UpdateTaskRequest(title = "Updated"))
-                }
-
-            assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertEquals("Invalid ID", response.body<ErrorResponse>().message)
-        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Invalid ID", response.body<ErrorResponse>().message)
+    }
 
     @Test
-    fun `PUT tasks with non-existent id returns 404`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `PUT tasks with non-existent id returns 404`() = apiTest { client ->
+        val response =
+            client.put("/tasks/999") {
+                contentType(ContentType.Application.Json)
+                setBody(UpdateTaskRequest(title = "Updated"))
+            }
 
-            val response =
-                client.put("/tasks/999") {
-                    contentType(ContentType.Application.Json)
-                    setBody(UpdateTaskRequest(title = "Updated"))
-                }
-
-            assertEquals(HttpStatusCode.NotFound, response.status)
-            assertEquals("Task not found", response.body<ErrorResponse>().message)
-        }
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        assertEquals("Task not found", response.body<ErrorResponse>().message)
+    }
 
     @Test
-    fun `DELETE tasks with non-numeric id returns 400`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
-            val response = client.delete("/tasks/abc")
-            assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertEquals("Invalid ID", response.body<ErrorResponse>().message)
-        }
+    fun `DELETE tasks with non-numeric id returns 400`() = apiTest { client ->
+        val response = client.delete("/tasks/abc")
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Invalid ID", response.body<ErrorResponse>().message)
+    }
 
     @Test
-    fun `DELETE tasks with non-existent id returns 404`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
-
-            val response = client.delete("/tasks/999")
-            assertEquals(HttpStatusCode.NotFound, response.status)
-            assertEquals("Task not found", response.body<ErrorResponse>().message)
-        }
+    fun `DELETE tasks with non-existent id returns 404`() = apiTest { client ->
+        val response = client.delete("/tasks/999")
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        assertEquals("Task not found", response.body<ErrorResponse>().message)
+    }
 
     // ========== assignee リレーション ==========
 
     @Test
-    fun `POST tasks with valid assigneeId stores assignee`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `POST tasks with valid assigneeId stores assignee`() = apiTest { client ->
+        val user = client.createUser("Alice", "alice@example.com")
 
-            val user =
-                client.post("/users") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateUserRequest(name = "Alice", email = "alice@example.com"))
-                }.body<User>()
+        val response =
+            client.post("/tasks") {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTaskRequest(title = "Assigned Task", assigneeId = user.id))
+            }
 
-            val response =
-                client.post("/tasks") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateTaskRequest(title = "Assigned Task", assigneeId = user.id))
-                }
-
-            assertEquals(HttpStatusCode.Created, response.status)
-            assertEquals(user.id, response.body<Task>().assigneeId)
-        }
+        assertEquals(HttpStatusCode.Created, response.status)
+        assertEquals(user.id, response.body<Task>().assigneeId)
+    }
 
     @Test
-    fun `POST tasks without assigneeId stores null`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `POST tasks without assigneeId stores null`() = apiTest { client ->
+        val response =
+            client.post("/tasks") {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTaskRequest(title = "Unassigned"))
+            }
 
-            val response =
-                client.post("/tasks") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateTaskRequest(title = "Unassigned"))
-                }
-
-            assertEquals(HttpStatusCode.Created, response.status)
-            assertEquals(null, response.body<Task>().assigneeId)
-        }
+        assertEquals(HttpStatusCode.Created, response.status)
+        assertEquals(null, response.body<Task>().assigneeId)
+    }
 
     @Test
-    fun `POST tasks with non-existent assigneeId returns 400`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `POST tasks with non-existent assigneeId returns 400`() = apiTest { client ->
+        val response =
+            client.post("/tasks") {
+                contentType(ContentType.Application.Json)
+                setBody(CreateTaskRequest(title = "x", assigneeId = 999))
+            }
 
-            val response =
-                client.post("/tasks") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateTaskRequest(title = "x", assigneeId = 999))
-                }
-
-            assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertEquals("Assignee not found: 999", response.body<ErrorResponse>().message)
-        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Assignee not found: 999", response.body<ErrorResponse>().message)
+    }
 
     @Test
-    fun `PUT tasks with valid assigneeId updates assignee`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `PUT tasks with valid assigneeId updates assignee`() = apiTest { client ->
+        val user = client.createUser("Bob", "bob@example.com")
+        val task = client.createTask("x")
 
-            val user =
-                client.post("/users") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateUserRequest(name = "Bob", email = "bob@example.com"))
-                }.body<User>()
-            val task =
-                client.post("/tasks") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateTaskRequest(title = "x"))
-                }.body<Task>()
+        val response =
+            client.put("/tasks/${task.id}") {
+                contentType(ContentType.Application.Json)
+                setBody(UpdateTaskRequest(assigneeId = user.id))
+            }
 
-            val response =
-                client.put("/tasks/${task.id}") {
-                    contentType(ContentType.Application.Json)
-                    setBody(UpdateTaskRequest(assigneeId = user.id))
-                }
-
-            assertEquals(HttpStatusCode.OK, response.status)
-            assertEquals(user.id, response.body<Task>().assigneeId)
-        }
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(user.id, response.body<Task>().assigneeId)
+    }
 
     @Test
-    fun `PUT tasks with non-existent assigneeId returns 400`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `PUT tasks with non-existent assigneeId returns 400`() = apiTest { client ->
+        val task = client.createTask("x")
 
-            val task =
-                client.post("/tasks") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateTaskRequest(title = "x"))
-                }.body<Task>()
+        val response =
+            client.put("/tasks/${task.id}") {
+                contentType(ContentType.Application.Json)
+                setBody(UpdateTaskRequest(assigneeId = 999))
+            }
 
-            val response =
-                client.put("/tasks/${task.id}") {
-                    contentType(ContentType.Application.Json)
-                    setBody(UpdateTaskRequest(assigneeId = 999))
-                }
-
-            assertEquals(HttpStatusCode.BadRequest, response.status)
-            assertEquals("Assignee not found: 999", response.body<ErrorResponse>().message)
-        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("Assignee not found: 999", response.body<ErrorResponse>().message)
+    }
 
     @Test
-    fun `DELETE user sets assigneeId of their tasks to null`() =
-        testApplication {
-            configureTestApplication()
-            val client = jsonClient()
+    fun `DELETE user sets assigneeId of their tasks to null`() = apiTest { client ->
+        val user = client.createUser("Carol", "c@example.com")
+        val task = client.createTask("x", assigneeId = user.id)
+        assertEquals(user.id, task.assigneeId)
 
-            val user =
-                client.post("/users") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateUserRequest(name = "Carol", email = "c@example.com"))
-                }.body<User>()
-            val task =
-                client.post("/tasks") {
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateTaskRequest(title = "x", assigneeId = user.id))
-                }.body<Task>()
+        client.delete("/users/${user.id}")
 
-            assertEquals(user.id, task.assigneeId)
-
-            client.delete("/users/${user.id}")
-
-            val refetched = client.get("/tasks/${task.id}").body<Task>()
-            assertEquals(null, refetched.assigneeId)
-        }
+        val refetched = client.get("/tasks/${task.id}").body<Task>()
+        assertEquals(null, refetched.assigneeId)
+    }
 }
