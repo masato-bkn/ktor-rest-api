@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.factories.TaskFactory
 import com.example.models.CreateTaskRequest
 import com.example.models.Task
 import com.example.models.UpdateTaskRequest
@@ -37,7 +38,7 @@ class TaskRoutesTest : ApiTestBase() {
 
     @Test
     fun `GET tasks by id returns the task`() = apiTest { client ->
-        val created = client.createTask("My Task")
+        val created = TaskFactory.create(title = "My Task")
 
         val response = client.get("/tasks/${created.id}")
         assertEquals(HttpStatusCode.OK, response.status)
@@ -52,7 +53,7 @@ class TaskRoutesTest : ApiTestBase() {
 
     @Test
     fun `PUT tasks updates the task`() = apiTest { client ->
-        val created = client.createTask("Original")
+        val created = TaskFactory.create(title = "Original")
 
         val response =
             client.put("/tasks/${created.id}") {
@@ -68,7 +69,7 @@ class TaskRoutesTest : ApiTestBase() {
 
     @Test
     fun `DELETE tasks removes the task`() = apiTest { client ->
-        val created = client.createTask("To Delete")
+        val created = TaskFactory.create()
 
         val deleteResponse = client.delete("/tasks/${created.id}")
         assertEquals(HttpStatusCode.NoContent, deleteResponse.status)
@@ -190,7 +191,7 @@ class TaskRoutesTest : ApiTestBase() {
     @Test
     fun `PUT tasks with valid assigneeId updates assignee`() = apiTest { client ->
         val user = client.createUser("Bob", "bob@example.com")
-        val task = client.createTask("x")
+        val task = TaskFactory.create()
 
         val response =
             client.put("/tasks/${task.id}") {
@@ -204,7 +205,7 @@ class TaskRoutesTest : ApiTestBase() {
 
     @Test
     fun `PUT tasks with non-existent assigneeId returns 400`() = apiTest { client ->
-        val task = client.createTask("x")
+        val task = TaskFactory.create()
 
         val response =
             client.put("/tasks/${task.id}") {
@@ -219,7 +220,7 @@ class TaskRoutesTest : ApiTestBase() {
     @Test
     fun `DELETE user sets assigneeId of their tasks to null`() = apiTest { client ->
         val user = client.createUser("Carol", "c@example.com")
-        val task = client.createTask("x", assigneeId = user.id)
+        val task = TaskFactory.create(assigneeId = user.id)
         assertEquals(user.id, task.assigneeId)
 
         client.delete("/users/${user.id}")

@@ -46,17 +46,7 @@ abstract class ApiTestBase {
                 },
             )
         }
-
-    protected suspend fun HttpClient.createTask(
-        title: String,
-        description: String = "",
-        assigneeId: Int? = null,
-    ): Task =
-        post("/tasks") {
-            contentType(ContentType.Application.Json)
-            setBody(CreateTaskRequest(title = title, description = description, assigneeId = assigneeId))
-        }.body<Task>()
-
+    
     protected suspend fun HttpClient.createUser(
         name: String,
         email: String,

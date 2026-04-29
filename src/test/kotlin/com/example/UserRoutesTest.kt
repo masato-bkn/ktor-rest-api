@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.factories.TaskFactory
 import com.example.models.CreateUserRequest
 import com.example.models.Task
 import com.example.models.UpdateUserRequest
@@ -160,9 +161,9 @@ class UserRoutesTest : ApiTestBase() {
     @Test
     fun `GET users tasks returns tasks assigned to that user`() = apiTest { client ->
         val user = client.createUser("Alice", "a@example.com")
-        client.createTask("T1", assigneeId = user.id)
-        client.createTask("T2", assigneeId = user.id)
-        client.createTask("Other")
+        TaskFactory.create(title = "T1", assigneeId = user.id)
+        TaskFactory.create(title = "T2", assigneeId = user.id)
+        TaskFactory.create(title = "Other")
 
         val response = client.get("/users/${user.id}/tasks")
         assertEquals(HttpStatusCode.OK, response.status)
