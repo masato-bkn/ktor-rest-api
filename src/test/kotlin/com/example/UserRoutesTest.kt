@@ -1,6 +1,7 @@
 package com.example
 
 import com.example.factories.TaskFactory
+import com.example.factories.UserFactory
 import com.example.models.CreateUserRequest
 import com.example.models.Task
 import com.example.models.UpdateUserRequest
@@ -39,7 +40,7 @@ class UserRoutesTest : ApiTestBase() {
 
     @Test
     fun `GET users by id returns the user`() = apiTest { client ->
-        val created = client.createUser("Bob", "bob@example.com")
+        val created = UserFactory.create(name = "Bob", email = "bob@example.com")
 
         val response = client.get("/users/${created.id}")
         assertEquals(HttpStatusCode.OK, response.status)
@@ -50,8 +51,8 @@ class UserRoutesTest : ApiTestBase() {
 
     @Test
     fun `GET users returns all users`() = apiTest { client ->
-        client.createUser("Alice", "alice@example.com")
-        client.createUser("Bob", "bob@example.com")
+        UserFactory.create(name = "Alice", email = "alice@example.com")
+        UserFactory.create(name = "Bob", email = "bob@example.com")
 
         val response = client.get("/users")
         assertEquals(HttpStatusCode.OK, response.status)
@@ -61,7 +62,7 @@ class UserRoutesTest : ApiTestBase() {
 
     @Test
     fun `PUT users updates the user`() = apiTest { client ->
-        val created = client.createUser("Alice", "alice@example.com")
+        val created = UserFactory.create(name = "Alice", email = "alice@example.com")
 
         val response =
             client.put("/users/${created.id}") {
@@ -77,7 +78,7 @@ class UserRoutesTest : ApiTestBase() {
 
     @Test
     fun `DELETE users removes the user`() = apiTest { client ->
-        val created = client.createUser("Alice", "alice@example.com")
+        val created = UserFactory.create(name = "Alice", email = "alice@example.com")
 
         val deleteResponse = client.delete("/users/${created.id}")
         assertEquals(HttpStatusCode.NoContent, deleteResponse.status)
@@ -160,7 +161,7 @@ class UserRoutesTest : ApiTestBase() {
 
     @Test
     fun `GET users tasks returns tasks assigned to that user`() = apiTest { client ->
-        val user = client.createUser("Alice", "a@example.com")
+        val user = UserFactory.create(name = "Alice", email = "a@example.com")
         TaskFactory.create(title = "T1", assigneeId = user.id)
         TaskFactory.create(title = "T2", assigneeId = user.id)
         TaskFactory.create(title = "Other")
@@ -174,7 +175,7 @@ class UserRoutesTest : ApiTestBase() {
 
     @Test
     fun `GET users tasks returns empty list when user has no tasks`() = apiTest { client ->
-        val user = client.createUser("Alice", "a@example.com")
+        val user = UserFactory.create(name = "Alice", email = "a@example.com")
 
         val response = client.get("/users/${user.id}/tasks")
         assertEquals(HttpStatusCode.OK, response.status)

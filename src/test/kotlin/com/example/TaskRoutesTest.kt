@@ -1,6 +1,7 @@
 package com.example
 
 import com.example.factories.TaskFactory
+import com.example.factories.UserFactory
 import com.example.models.CreateTaskRequest
 import com.example.models.Task
 import com.example.models.UpdateTaskRequest
@@ -152,7 +153,7 @@ class TaskRoutesTest : ApiTestBase() {
 
     @Test
     fun `POST tasks with valid assigneeId stores assignee`() = apiTest { client ->
-        val user = client.createUser("Alice", "alice@example.com")
+        val user = UserFactory.create(name = "Alice", email = "alice@example.com")
 
         val response =
             client.post("/tasks") {
@@ -190,7 +191,7 @@ class TaskRoutesTest : ApiTestBase() {
 
     @Test
     fun `PUT tasks with valid assigneeId updates assignee`() = apiTest { client ->
-        val user = client.createUser("Bob", "bob@example.com")
+        val user = UserFactory.create(name = "Bob", email = "bob@example.com")
         val task = TaskFactory.create()
 
         val response =
@@ -219,7 +220,7 @@ class TaskRoutesTest : ApiTestBase() {
 
     @Test
     fun `DELETE user sets assigneeId of their tasks to null`() = apiTest { client ->
-        val user = client.createUser("Carol", "c@example.com")
+        val user = UserFactory.create(name = "Carol", email = "c@example.com")
         val task = TaskFactory.create(assigneeId = user.id)
         assertEquals(user.id, task.assigneeId)
 

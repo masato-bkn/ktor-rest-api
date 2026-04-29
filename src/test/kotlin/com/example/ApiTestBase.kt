@@ -2,18 +2,11 @@ package com.example
 
 import com.example.db.ExposedTaskRepository
 import com.example.db.ExposedUserRepository
-import com.example.models.CreateTaskRequest
-import com.example.models.CreateUserRequest
-import com.example.models.Task
-import com.example.models.User
 import com.example.plugins.configureRouting
 import com.example.plugins.configureSerialization
 import com.example.plugins.configureStatusPages
 import io.ktor.client.*
-import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.testing.*
 import org.junit.BeforeClass
@@ -46,13 +39,4 @@ abstract class ApiTestBase {
                 },
             )
         }
-    
-    protected suspend fun HttpClient.createUser(
-        name: String,
-        email: String,
-    ): User =
-        post("/users") {
-            contentType(ContentType.Application.Json)
-            setBody(CreateUserRequest(name = name, email = email))
-        }.body<User>()
 }
