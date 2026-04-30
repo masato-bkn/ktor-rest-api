@@ -174,9 +174,13 @@ class UserRoutesTest : ApiTestBase() {
     @Test
     fun `GET users tasks returns tasks assigned to that user`() =
         apiTest { client ->
-            val user = UserFactory.create(name = "Alice", email = "a@example.com")
-            TaskFactory.create(title = "T1", assigneeId = user.id)
-            TaskFactory.create(title = "T2", assigneeId = user.id)
+            val user =
+                fixture {
+                    user(name = "Alice", email = "a@example.com") {
+                        task(title = "T1")
+                        task(title = "T2")
+                    }
+                }
             TaskFactory.create(title = "Other")
 
             val response = client.get("/users/${user.id}/tasks")
