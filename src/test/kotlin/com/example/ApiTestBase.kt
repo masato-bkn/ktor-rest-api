@@ -2,6 +2,7 @@ package com.example
 
 import com.example.db.ExposedTaskRepository
 import com.example.db.ExposedUserRepository
+import com.example.fixtures.FixtureScope
 import com.example.plugins.configureRouting
 import com.example.plugins.configureSerialization
 import com.example.plugins.configureStatusPages
@@ -39,4 +40,8 @@ abstract class ApiTestBase {
                 },
             )
         }
+
+    protected suspend fun <T> fixture(block: suspend FixtureScope.() -> T): T {
+        return FixtureScope().block()
+    }
 }
