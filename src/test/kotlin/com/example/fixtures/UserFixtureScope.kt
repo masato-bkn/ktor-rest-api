@@ -1,9 +1,11 @@
 package com.example.fixtures
 
+import FixtureDsl
 import com.example.factories.TaskFactory
 import com.example.models.Task
 import com.example.models.User
 
+@FixtureDsl
 class UserFixtureScope(val user: User) {
     suspend fun task(
         title: String,
