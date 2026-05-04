@@ -174,7 +174,7 @@ class UserRoutesTest : ApiTestBase() {
     @Test
     fun `GET users tasks returns tasks assigned to that user`() =
         apiTest { client ->
-            val user =
+            val result =
                 fixture {
                     user(name = "Alice", email = "a@example.com") {
                         task(title = "T1")
@@ -183,7 +183,7 @@ class UserRoutesTest : ApiTestBase() {
                 }
             TaskFactory.create(title = "Other")
 
-            val response = client.get("/users/${user.id}/tasks")
+            val response = client.get("/users/${result.user.id}/tasks")
             assertEquals(HttpStatusCode.OK, response.status)
             val tasks = response.body<List<Task>>()
             assertEquals(2, tasks.size)

@@ -1,8 +1,6 @@
 package com.example.fixtures
 
-import FixtureDsl
 import com.example.factories.UserFactory
-import com.example.models.User
 
 @FixtureDsl
 class FixtureScope {
@@ -10,11 +8,12 @@ class FixtureScope {
         name: String,
         email: String,
         block: suspend UserFixtureScope.() -> Unit,
-    ): User {
+    ): UserWithTasks {
         // `block: suspend UserFixtureScope.() -> Unit` -> UserFixtureScope のメソッドとして書かれたラムダ
         val user = UserFactory.create(name, email)
-        UserFixtureScope(user).block()
+        val scope = UserFixtureScope(user)
+        scope.block()
 
-        return user
+        return scope.build()
     }
 }
