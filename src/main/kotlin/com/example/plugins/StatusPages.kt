@@ -1,9 +1,9 @@
 package com.example.plugins
 
 import com.example.models.DomainError
+import com.example.models.FieldError
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.application.call
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import kotlinx.serialization.Serializable
@@ -11,6 +11,9 @@ import kotlinx.serialization.Serializable
 /** エラーレスポンスの共通フォーマット（全APIで統一した形式でエラーを返す） */
 @Serializable
 data class ErrorResponse(val message: String)
+
+@Serializable
+data class ValidationErrorResponse(val errors: List<FieldError>)
 
 /**
  * StatusPagesプラグインの設定
@@ -39,6 +42,7 @@ suspend fun ApplicationCall.handleDomainError(error: DomainError) {
     when (error) {
         is DomainError.NotFound -> respond(HttpStatusCode.NotFound, ErrorResponse(error.message))
         is DomainError.BadRequest -> respond(HttpStatusCode.BadRequest, ErrorResponse(error.message))
+        is DomainError.ValidationFailedError -> respond(HttpStatusCode.BadRequest, ValidationErrorResponse(error.errors))
     }
 }
 
