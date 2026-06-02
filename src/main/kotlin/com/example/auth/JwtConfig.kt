@@ -8,12 +8,12 @@ import java.util.Date
 const val ONE_HOUR_MILLIS = 3_600_000
 
 class JwtConfig(private val secret: String, val issuer: String, val audience: String, val realm: String) {
-    fun generateToken(userId: Int): String {
+    fun generateToken(userId: Int, expiresAt: Date = Date(System.currentTimeMillis() + ONE_HOUR_MILLIS)): String {
         return JWT.create()
             .withIssuer(issuer)
             .withAudience(audience)
             .withClaim("id", userId)
-            .withExpiresAt(Date(System.currentTimeMillis() + ONE_HOUR_MILLIS))
+            .withExpiresAt(expiresAt)
             .sign(Algorithm.HMAC256(secret))
     }
 
